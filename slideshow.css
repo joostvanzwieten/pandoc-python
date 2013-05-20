@@ -115,6 +115,11 @@ div.pythoncode div.line
   min-height : 1em;
 }
 
+div.pythoncode div.line.output
+{
+  white-space : pre-wrap;
+}
+
 .highlight div.pythoncode div.line:hover
 {
   background : #ffffff;
