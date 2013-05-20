@@ -3,7 +3,6 @@ function Controller() // {{{
   this.current = null;
 
   var h = window.location.hash;
-  console.log( h );
   if ( h.slice( 0, 11 ) == '#slideshow-' )
   {
     this.current = document.getElementById( h.slice( 11 ) );
@@ -93,7 +92,6 @@ Controller.prototype =
 //  }
     else if ( e.keyCode == 79 ) // o, toggle output visible
     {
-      console.log( e );
       if ( e.ctrlKey == 1 )
       {
         var el = document.getElementsByClassName( 'slide' );
