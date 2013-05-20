@@ -120,7 +120,7 @@ class IC( code.InteractiveConsole ):
 
             return wrapped
 
-        for attr in ( 'plot', 'title', 'xlabel', 'ylabel', 'subplot' ):
+        for attr in ( 'plot', 'title', 'xlabel', 'ylabel', 'subplot', 'imshow' ):
             setattr( matplotlib.pyplot, attr, return_None_wrapper( getattr( matplotlib.pyplot, attr ) ) )
 
         def show_wrapper():
