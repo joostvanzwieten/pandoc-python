@@ -162,7 +162,16 @@ def convert_ast( doc, doc_name ):
 
     slide_counter = new_slide( 0 )
 
+    next_new_slide = False
+
     for item in doc[ 1 ]:
+
+        if next_new_slide:
+            slide_counter = new_slide( slide_counter )
+            next_new_slide = False
+
+            if item == 'HorizontalRule':
+                continue
 
         if isinstance( item, dict ) and 'CodeBlock' in item:
 
@@ -211,6 +220,8 @@ def convert_ast( doc, doc_name ):
                 new_body.append( { 'RawBlock' : [ 'latex', code_latex ] } )
 
             for figure in ic.pending_figures:
+                slide_counter = new_slide( slide_counter )
+                next_new_slide = True
                 code_html = '<div class="output image"><object data="{}.svg" type="image/svg+xml"></object></div>'.format( figure )
                 code_latex = '\\includegraphics[width=.75\\textwidth]{{{}}}'.format( figure )
                 new_body.append( { 'RawBlock' : [ 'html', code_html ] } )
