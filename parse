@@ -1,0 +1,249 @@
+#! /usr/bin/env python
+
+from __future__ import print_function, division, unicode_literals
+
+
+import sys
+import subprocess
+import json
+import code
+import cStringIO as StringIO
+import os.path
+import shutil
+import pygments, pygments.lexers, pygments.formatters
+
+
+def escape_html( s ):
+
+    return reduce( lambda t, a: t.replace( *a ), ( ('&','&amp;'), ('<','&lt;'), ('>','&gt;'), ('"','&quot;') ), s )
+
+
+class HtmlFormatter( pygments.formatters.HtmlFormatter ):
+
+    def wrap( self, source, outfile ):
+
+        return self._wrap_code( source )
+
+    def _wrap_code( self, source ):
+
+        yield 0, '<div class="pythoncode">'
+        for i, t in source:
+            if i == 1:
+                if t.endswith( '\r\n' ):
+                    t, end = t[ :-2 ], t[ -2: ]
+                elif t.endswith( '\n' ):
+                    t, end = t[ :-1 ], t[ -1: ]
+                if len( t ) == 0:
+                    t = '<span> </span>' # FIXME
+                t = '<div class="line">{}</div>{}'.format( t, end )
+            yield i, t
+        yield 0, '</div>'
+
+
+class HtmlFormatterIC( pygments.formatters.HtmlFormatter ):
+
+    def wrap( self, source, outfile ):
+
+        return self._wrap_code( source )
+
+    def _wrap_code( self, source ):
+
+        yield 0, '<div class="pythoncode">'
+        for i, t in source:
+            if i == 1:
+                if t.endswith( '\r\n' ):
+                    t, end = t[ :-2 ], t[ -2: ]
+                elif t.endswith( '\n' ):
+                    t, end = t[ :-1 ], t[ -1: ]
+                if t.startswith( '<span class="gp">... </span>' ) or t.startswith( '<span class="gp">&gt;&gt;&gt; </span>' ):
+                    cls = 'code'
+                else:
+                    cls = 'output'
+                if len( t ) == 0:
+                    t = '<span> </span>' # FIXME
+                t = '<div class="line {}">{}</div>{}'.format( cls, t, end )
+            yield i, t
+        yield 0, '</div>'
+
+
+class IC( code.InteractiveConsole ):
+
+    def __init__( self, prefix ):
+
+        self.prefix = prefix
+
+        self._locals = { '__name__' : '__console__', '__doc__' : None }
+
+        self.prompt = False
+        code.InteractiveConsole.__init__( self, self._locals )
+
+        self._locals[ 'init_matplotlib' ] = self._init_matplotlib
+        self.push_hidden( 'init_matplotlib()' )
+        del self._locals[ 'init_matplotlib' ]
+
+        self._pending_figures = []
+        self.fignum = 0
+
+    @property
+    def pending_figures( self ):
+
+        return self._pending_figures_iterator()
+
+    def _pending_figures_iterator( self ):
+
+        while self._pending_figures:
+            yield self._pending_figures.pop( 0 )
+
+    def push( self, line ):
+
+        print( '...' if self.prompt else '>>>', line )
+        self.prompt = code.InteractiveConsole.push( self, line )
+
+    def push_hidden( self, line ):
+
+        self.prompt = code.InteractiveConsole.push( self, line )
+
+    def write( self, line ):
+
+        print( line, end = '' )
+
+    def _init_matplotlib( self ):
+
+        import matplotlib
+        matplotlib.use( 'cairo' )
+        import matplotlib.pyplot
+
+        def return_None_wrapper( func ):
+
+            def wrapped( *args, **kargs ):
+                func( *args, **kargs )
+
+            return wrapped
+
+        for attr in ( 'plot', 'title', 'xlabel', 'ylabel', 'subplot' ):
+            setattr( matplotlib.pyplot, attr, return_None_wrapper( getattr( matplotlib.pyplot, attr ) ) )
+
+        def show_wrapper():
+
+            figures=[manager.canvas.figure for manager in matplotlib._pylab_helpers.Gcf.get_all_fig_managers()]
+            for figure in figures:
+                name = '{}_matplotlib_{:04d}'.format( self.prefix, self.fignum )
+                figure.savefig( name + '.svg' )
+                figure.savefig( name + '.pdf' )
+                matplotlib.pyplot.close( figure )
+                self.fignum += 1
+                self._pending_figures.append( name )
+
+        matplotlib.pyplot.show = show_wrapper
+
+
+def convert_ast( doc, doc_name ):
+
+#   python_lexer = pygments.lexers.get_lexer_by_name( 'python' )
+    python_lexer = pygments.lexers.PythonLexer()
+    python_console_lexer = pygments.lexers.PythonConsoleLexer()
+#   html_formatter = pygments.formatters.get_formatter_by_name( 'html' )
+    html_formatter = HtmlFormatter( linenos = False, cssclass = "pythoncode" )
+    html_console_formatter = HtmlFormatterIC( linenos = False, cssclass = "pythoncode" )
+    latex_formatter = pygments.formatters.LatexFormatter( linenos = False )
+
+
+    ic = IC( prefix = doc_name )
+
+    new_body = []
+
+    def new_slide( slide_counter ):
+
+        html_code = '<div id="slide-{}" class="slide"><div class="container">'.format( slide_counter )
+        if slide_counter > 0:
+            html_code = '</div></div>' + html_code
+        new_body.append( { 'RawBlock' : [ 'html', html_code ] } )
+        return slide_counter + 1
+
+    slide_counter = new_slide( 0 )
+
+    for item in doc[ 1 ]:
+
+        if isinstance( item, dict ) and 'CodeBlock' in item:
+
+            data = item[ 'CodeBlock' ]
+            src = ( data[ 1 ] + '\n' ).splitlines()
+
+            # determine if we must run the code through an interpreter
+            code_in_ic = False
+            # if the class list contains ic (interactive console)
+            if 'ic' in  data[ 0 ][ 1 ]:
+                code_in_ic = True
+            # or if the code starts with >>>
+            elif src[ 0 ].startswith( '>>>' ):
+                code_in_ic = True
+                src = src[ 1: ]
+
+            if code_in_ic:
+
+                # run `src` through an interpreter, and capture stdout
+                original_stdout = sys.stdout
+                sys.stdout = StringIO.StringIO()
+                for line in src:
+                    ic.push( line )
+                output = sys.stdout.getvalue()
+                sys.stdout = original_stdout
+
+                # highlighting of src and output
+                code_html = pygments.highlight( output, python_console_lexer, html_console_formatter )
+                code_latex = pygments.highlight( output, python_console_lexer, latex_formatter )
+
+            else:
+
+                # highlighting of src
+                code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
+                code_latex = pygments.highlight( '\n'.join( src ), python_lexer, latex_formatter )
+
+            if 'hidden' not in data[ 0 ][ 1 ]:
+
+                new_body.append( { 'RawBlock' : [ 'html', code_html ] } )
+                new_body.append( { 'RawBlock' : [ 'latex', code_latex ] } )
+
+            for figure in ic.pending_figures:
+                code_html = '<div class="output image"><object data="{}.svg" type="image/svg+xml"></object></div>'.format( figure )
+                code_latex = '\\includegraphics[width=.75\\textwidth]{{{}}}'.format( figure )
+                new_body.append( { 'RawBlock' : [ 'html', code_html ] } )
+                new_body.append( { 'RawBlock' : [ 'latex', code_latex ] } )
+
+        elif item == 'HorizontalRule':
+
+            slide_counter = new_slide( slide_counter )
+
+        else:
+
+            new_body.append( item )
+
+    new_body.append( { 'RawBlock' : [ 'html', '</div></div>' ] } )
+
+    return doc[ 0 ], new_body
+
+
+if __name__ == '__main__':
+
+    src = sys.argv[ 1 ]
+    name, ext = os.path.splitext( src )
+    if not os.path.isfile( src ):
+        print( 'No such file: {}'.format( src ) )
+        raise SystemExit
+
+    pandoc = subprocess.Popen( [ 'pandoc', '-t', 'json', src ], stdout = subprocess.PIPE )
+    doc, tmp = pandoc.communicate()
+    doc = json.loads( doc )
+
+    root = os.path.split( __file__ )[ 0 ]
+    p = lambda f: os.path.join( root, f )
+
+    doc = json.dumps( convert_ast( doc, name ) )
+    pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'html', '--standalone', '--mathjax=http://cdn.mathjax.org/mathjax/2.2-beta/MathJax.js?config=TeX-AMS-MML_HTMLorMML', '--css=pygments.css', '--css=slideshow.css', '--include-in-header', p( 'html_include' ), '--output', name + '.xhtml' ], stdin = subprocess.PIPE )
+    pandoc.communicate( doc )
+    pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'latex', '--standalone', '--include-in-header', p( 'tex_include' ), '--include-in-header', p( 'pygments.tex' ), '--output', name + '.tex' ], stdin = subprocess.PIPE )
+    pandoc.communicate( doc )
+
+    for f in ( 'slideshow.css', 'slideshow.js', 'pygments.css' ):
+        if not os.path.exists( f ):
+            shutil.copy( p( f ), f )

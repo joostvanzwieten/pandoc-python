@@ -1,0 +1,152 @@
+body
+{
+  font-size : 12pt;
+  font-family : serif;
+  position : absolute;
+}
+
+body, body.overview div.slide div.container
+{
+  padding : 1ex;
+}
+
+body
+{
+  font-family : monospace;
+  max-width : 90ex;
+}
+
+body > div
+{
+  font-family : sans-serif;
+  text-align : justify;
+}
+
+h1, h2, h3, h4, h5, h6
+{
+  border-bottom : 1px solid #ccc;
+}
+
+body.slideshow, body.overview
+{
+  max-width : inherit;
+  font-size : 24pt;
+  position : inherit;
+}
+
+body.slideshow div.slide
+{
+  display : none;
+}
+
+body.slideshow div.slide.current
+{
+  display : block;
+}
+
+body.overview
+{
+  position : absolute;
+  top : 0px;
+  bottom : 0px;
+  left : 0px;
+  right : 0px;
+  padding : 0px;
+  margin : 0px;
+}
+
+body.overview div.slide
+{
+  font-size : 50%;
+  padding : 0px;
+  margin : 0px;
+  width : 50%;
+  height : 50%;
+  display : inline-block;
+  overflow : auto;
+}
+
+body.overview div.slide div.container
+{
+  margin : 1ex;
+  padding : 1ex;
+}
+
+h1
+{
+  font-size : 150%;
+}
+
+h2
+{
+  font-size : 125%;
+}
+
+/* colors from python.org */
+/*
+div.pythoncode pre
+{
+  padding: 1ex;
+  background-color: #eeffcc;
+  color: #333333;
+  border: 1px solid #ac9;
+  border-left: none;
+  border-right: none;
+}
+*/
+
+div.pythoncode
+{
+  margin : 1em;
+  margin-left : 0px;
+  margin-right : 0px;
+  padding: 1ex;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-left: none;
+  border-right: none;
+  overflow : auto;
+}
+
+div.pythoncode div.line
+{
+  font-family : monospace;
+  white-space : pre;
+}
+
+.highlight div.pythoncode div.line:hover
+{
+  background : #ffffff;
+}
+
+.outputhidden .output
+{
+  display : none;
+}
+
+/*
+div.output.image
+{
+  float : right;
+  position : absolute;
+  right : 0px;
+}
+
+div.output.image object
+{
+  position : absolute;
+  left : 0px;
+  width : 200px;
+  height : 200px;
+  border : 1px solid #ccc;
+  clear : right;
+}
+*/
+
+div.output.image object
+{
+  width : 100%;
+}
+
+/* vim: ts=2:sts=2:sw=2:et:fdm=marker:fmr={{{,}}}
+ */
