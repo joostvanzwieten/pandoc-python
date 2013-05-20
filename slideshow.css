@@ -154,9 +154,17 @@ div.output.image object
 }
 */
 
-div.output.image object
+div.output.image img
 {
   width : 100%;
+  height : auto;
+}
+
+body.slideshow div.output.image img
+{
+  margin-left : 10%;
+  width : 80%;
+  height : auto;
 }
 
 /* vim: ts=2:sts=2:sw=2:et:fdm=marker:fmr={{{,}}}
