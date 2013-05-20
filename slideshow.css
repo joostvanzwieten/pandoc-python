@@ -112,6 +112,7 @@ div.pythoncode div.line
 {
   font-family : monospace;
   white-space : pre;
+  min-height : 1em;
 }
 
 .highlight div.pythoncode div.line:hover
