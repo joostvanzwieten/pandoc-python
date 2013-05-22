@@ -100,13 +100,17 @@ div.pythoncode pre
 }
 */
 
+code, div.pythoncode
+{
+  background-color: #f0f0f0;
+}
+
 div.pythoncode
 {
   margin : 1em;
   margin-left : 0px;
   margin-right : 0px;
   padding: 1ex;
-  background-color: #f0f0f0;
   border: 1px solid #ccc;
   border-left: none;
   border-right: none;
