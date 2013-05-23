@@ -113,12 +113,13 @@ div.pythoncode
   border: 1px solid #ccc;
   border-left: none;
   border-right: none;
-  overflow : auto;
 }
 
 div.pythoncode > div.container
 {
   padding: 1ex;
+  overflow : auto;
+  clear : right;
 }
 
 div.pythoncode div.line
@@ -209,11 +210,6 @@ div.pythoncode.output_hidden div.hide_output_button
 div.pythoncode.output_hidden div.output
 {
   display : none;
-}
-
-div.clear_right
-{
-  clear : right;
 }
 
 /* vim: ts=2:sts=2:sw=2:et:fdm=marker:fmr={{{,}}}

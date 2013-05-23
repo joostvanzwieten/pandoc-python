@@ -126,9 +126,6 @@ window.onload = function() // {{{
     hide_button.classList.add( 'hide_output_button' );
     show_button.addEventListener( 'click', show_output.bind( elements[ i ] ) );
     hide_button.addEventListener( 'click', hide_output.bind( elements[ i ] ) );
-    var clear = document.createElement( 'div' );
-    clear.classList.add( 'clear_right' );
-    elements[ i ].insertBefore( clear, elements[ i ].childNodes[0] );
     elements[ i ].insertBefore( hide_button, elements[ i ].childNodes[0] );
     elements[ i ].insertBefore( show_button, elements[ i ].childNodes[0] );
   }
