@@ -115,6 +115,9 @@ function hide_output()
 
 window.onload = function() // {{{
 {
+  // enable highlighting by default
+  document.body.classList.add( 'highlight' );
+
   var elements = document.getElementsByClassName( 'toggle_output_visible' );
   for ( var i = 0; i < elements.length; i += 1 )
   {
