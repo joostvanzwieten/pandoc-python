@@ -84,33 +84,6 @@ Controller.prototype =
         }
       }
     }
-//  else if ( e.keyCode == 79 ) // o, start overview
-//  {
-//    document.body.classList.remove( 'slideshow' );
-//    document.body.classList.add( 'overview' );
-//    window.location.hash = '';
-//  }
-    else if ( e.keyCode == 79 ) // o, toggle output visible
-    {
-      if ( e.ctrlKey == 1 )
-      {
-        var el = document.getElementsByClassName( 'slide' );
-        for ( var i = 0; i < el.length; i += 1 )
-        {
-          if ( e.shiftKey == 1 )
-            el[i].classList.add( 'outputhidden' );
-          else
-            el[i].classList.remove( 'outputhidden' );
-        }
-      }
-      else if ( this.current != null )
-      {
-        if ( e.shiftKey == 1 )
-          this.current.classList.add( 'outputhidden' );
-        else
-          this.current.classList.remove( 'outputhidden' );
-      }
-    }
     else if ( e.keyCode == 72 ) // h, toggle highlight
     {
       if ( e.shiftKey == 1 )
@@ -130,8 +103,36 @@ Controller.prototype =
   }
 }; // }}}
 
+function show_output()
+{
+  this.classList.remove( 'output_hidden' );
+}
+
+function hide_output()
+{
+  this.classList.add( 'output_hidden' );
+}
+
 window.onload = function() // {{{
 {
+  var elements = document.getElementsByClassName( 'toggle_output_visible' );
+  for ( var i = 0; i < elements.length; i += 1 )
+  {
+    var show_button = document.createElement( 'div' );
+    show_button.appendChild( document.createTextNode( 'show output' ) );
+    var hide_button = document.createElement( 'div' );
+    hide_button.appendChild( document.createTextNode( 'hide output' ) );
+    show_button.classList.add( 'show_output_button' );
+    hide_button.classList.add( 'hide_output_button' );
+    show_button.addEventListener( 'click', show_output.bind( elements[ i ] ) );
+    hide_button.addEventListener( 'click', hide_output.bind( elements[ i ] ) );
+    var clear = document.createElement( 'div' );
+    clear.classList.add( 'clear_right' );
+    elements[ i ].insertBefore( clear, elements[ i ].childNodes[0] );
+    elements[ i ].insertBefore( hide_button, elements[ i ].childNodes[0] );
+    elements[ i ].insertBefore( show_button, elements[ i ].childNodes[0] );
+  }
+
   var controller = new Controller();
   document.addEventListener( 'keydown', controller.key_handler.bind( controller ) );
 }; // }}}
