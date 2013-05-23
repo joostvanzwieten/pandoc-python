@@ -268,8 +268,8 @@ if __name__ == '__main__':
     doc = json.dumps( convert_ast( doc, name ) )
     pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'html', '--standalone', '--mathjax=http://cdn.mathjax.org/mathjax/2.2-beta/MathJax.js?config=TeX-AMS-MML_HTMLorMML', '--css=pygments.css', '--css=slideshow.css', '--include-in-header', p( 'html_include' ), '--output', name + '.xhtml' ], stdin = subprocess.PIPE )
     pandoc.communicate( doc )
-    pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'latex', '--standalone', '--include-in-header', p( 'tex_include' ), '--include-in-header', p( 'pygments.tex' ), '--output', name + '.tex' ], stdin = subprocess.PIPE )
-    pandoc.communicate( doc )
+#   pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'latex', '--standalone', '--include-in-header', p( 'tex_include' ), '--include-in-header', p( 'pygments.tex' ), '--output', name + '.tex' ], stdin = subprocess.PIPE )
+#   pandoc.communicate( doc )
 
     for f in ( 'slideshow.css', 'slideshow.js', 'pygments.css' ):
         if not os.path.exists( f ):
