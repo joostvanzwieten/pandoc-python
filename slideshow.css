@@ -5,7 +5,7 @@ body
   position : absolute;
 }
 
-body, body.overview div.slide div.container
+body, body.overview div.slide > div.container
 {
   padding : 1ex;
 }
@@ -71,7 +71,7 @@ body.overview div.slide
   overflow : auto;
 }
 
-body.overview div.slide div.container
+body.overview div.slide > div.container
 {
   margin : 1ex;
   padding : 1ex;
@@ -110,11 +110,15 @@ div.pythoncode
   margin : 1em;
   margin-left : 0px;
   margin-right : 0px;
-  padding: 1ex;
   border: 1px solid #ccc;
   border-left: none;
   border-right: none;
   overflow : auto;
+}
+
+div.pythoncode > div.container
+{
+  padding: 1ex;
 }
 
 div.pythoncode div.line
@@ -169,9 +173,17 @@ body.slideshow div.output.image img
 
 div.pythoncode div.show_output_button, div.pythoncode div.hide_output_button
 {
+  font-size : 75%;
   float : right;
   cursor : pointer;
-  text-decoration : underline;
+  background : #ccc;
+  padding-left : 1ex;
+  padding-right : 1ex;
+  padding-bottom : .5ex;
+  padding-top : .5ex;
+  margin-right : 1ex;
+  border-bottom-left-radius : .75ex;
+  border-bottom-right-radius : .75ex;
 }
 
 div.pythoncode div.show_output_button
