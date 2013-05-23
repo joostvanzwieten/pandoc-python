@@ -75,9 +75,9 @@ class IC( code.InteractiveConsole ):
         self.prompt = False
         code.InteractiveConsole.__init__( self, self._locals )
 
-        self._locals[ 'init_matplotlib' ] = self._init_matplotlib
-        self.push_hidden( 'init_matplotlib()' )
-        del self._locals[ 'init_matplotlib' ]
+        self._locals[ 'init_console' ] = self._init_console
+        self.push_hidden( 'init_console()' )
+        del self._locals[ 'init_console' ]
 
         self._pending_figures = []
         self.fignum = 0
@@ -107,7 +107,10 @@ class IC( code.InteractiveConsole ):
 
         print( line, end = '' )
 
-    def _init_matplotlib( self ):
+    def _init_console( self ):
+
+        import sys
+        sys.path.append( '.' )
 
         import matplotlib
         matplotlib.use( 'cairo' )
