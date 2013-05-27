@@ -171,8 +171,7 @@ body.slideshow div.output.image img
   height : auto;
 }
 
-
-div.pythoncode div.show_output_button, div.pythoncode div.hide_output_button
+div.pythoncode div.header_button
 {
   font-size : 75%;
   float : right;
@@ -183,26 +182,27 @@ div.pythoncode div.show_output_button, div.pythoncode div.hide_output_button
   padding-bottom : .5ex;
   padding-top : .5ex;
   margin-right : 1ex;
+  margin-left : 1ex;
   border-bottom-left-radius : .75ex;
   border-bottom-right-radius : .75ex;
 }
 
-div.pythoncode div.show_output_button
+div.pythoncode div.header_button.show_output
 {
   display : none;
 }
 
-div.pythoncode div.hide_output_button
+div.pythoncode div.header_button.hide_output
 {
   display : block;
 }
 
-div.pythoncode.output_hidden div.show_output_button
+div.pythoncode.output_hidden div.header_button.show_output
 {
   display : block;
 }
 
-div.pythoncode.output_hidden div.hide_output_button
+div.pythoncode.output_hidden div.header_button.hide_output
 {
   display : none;
 }
@@ -210,6 +210,60 @@ div.pythoncode.output_hidden div.hide_output_button
 div.pythoncode.output_hidden div.output
 {
   display : none;
+}
+
+div.pythoncode div.header_button.enable_debugger
+{
+  display : block;
+}
+
+div.pythoncode div.header_button.disable_debugger
+{
+  display : none;
+}
+
+div.pythoncode.debugger_enabled div.header_button.enable_debugger, div.pythoncode div.header_button.debugger_previous, div.pythoncode div.header_button.debugger_next
+{
+  display : none;
+}
+
+div.pythoncode.debugger_enabled div.header_button.disable_debugger, div.pythoncode.debugger_enabled div.header_button.debugger_previous, div.pythoncode.debugger_enabled div.header_button.debugger_next
+{
+  display : block;
+}
+
+a.debugger_data_url
+{
+  display : none;
+}
+
+div.pythoncode div.event, div.pythoncode div.console, div.pythoncode div.stack
+{
+  display : none;
+}
+
+div.pythoncode.debugger_enabled div.event, div.pythoncode.debugger_enabled div.console, div.pythoncode.debugger_enabled div.stack
+{
+  display : block;
+  border-top : 1px solid #ccc;
+}
+
+div.pythoncode div.event div.container, div.pythoncode div.console div.container, div.pythoncode div.stack div.container
+{
+  white-space : pre;
+  font-family : monospace;
+  margin : 1ex;
+}
+
+div.pythoncode div.event p, div.pythoncode div.console p, div.pythoncode div.stack p
+{
+  margin : 1ex;
+  font-weight : bold;
+}
+
+div.pythoncode div.debug_cursor
+{
+  background : #66ff66;
 }
 
 /* vim: ts=2:sts=2:sw=2:et:fdm=marker:fmr={{{,}}}

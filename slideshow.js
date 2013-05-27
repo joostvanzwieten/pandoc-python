@@ -1,3 +1,8 @@
+Element.prototype.empty = function()
+{
+  this.innerHTML = '';
+};
+
 function Controller() // {{{
 {
   this.current = null;
@@ -103,34 +108,170 @@ Controller.prototype =
   }
 }; // }}}
 
-function show_output()
+function PythonCode( root_element ) // {{{
 {
-  this.classList.remove( 'output_hidden' );
+  this.root_element = root_element;
+
+  if ( this.root_element.classList.contains( 'toggle_output_visible' ) )
+  {
+    this.create_header_button( 'show output', [ 'show_output' ], this.show_output );
+    this.create_header_button( 'hide output', [ 'hide_output' ], this.hide_output );
+  }
+
+  if ( this.root_element.classList.contains( 'debugger' ) )
+  {
+    // FIXME: properly check existence of at least one data url
+    json_url = this.root_element.getElementsByClassName( 'debugger_data_url' )[ 0 ];
+    json_url = json_url.href;
+    var request = new XMLHttpRequest();
+    request.open( 'GET', json_url, true );
+    request.addEventListener( 'load', this.request_debugger_data_load.bind( this ) );
+    request.addEventListener( 'failed', this.request_debugger_data_failed.bind( this ) );
+    request.send();
+  }
 }
 
-function hide_output()
+PythonCode.prototype =
 {
-  this.classList.add( 'output_hidden' );
-}
+  create_header_button : function( text, classes, event_handler )
+  {
+    var button = document.createElement( 'div' );
+    button.classList.add( 'header_button' );
+    for ( var i = 0; i < classes.length; i += 1 )
+      button.classList.add( classes[ i ] );
+    button.appendChild( document.createTextNode( text ) );
+    button.addEventListener( 'click', event_handler.bind( this ) );
+    // prevent text selection on double click
+    button.addEventListener( 'mousedown', function( e ) { e.preventDefault(); } );
+    if ( this.root_element.childNodes.length > 0 )
+      this.root_element.insertBefore( button, this.root_element.childNodes[0] );
+    else
+      this.root_element.appendChild( button );
+  },
+
+  show_output : function()
+  {
+    this.root_element.classList.remove( 'output_hidden' );
+  },
+
+  hide_output : function()
+  {
+    this.root_element.classList.add( 'output_hidden' );
+  },
+
+  enable_debugger : function()
+  {
+    this.root_element.classList.add( 'debugger_enabled' );
+
+    this.current = 0;
+    this.current_line = null;
+    this.debugger_update_state();
+  },
+
+  disable_debugger : function()
+  {
+    this.root_element.classList.remove( 'debugger_enabled' );
+    if ( this.current_line != null )
+    {
+      this.current_line.classList.remove( 'debug_cursor' );
+      this.current_line = null;
+    }
+  },
+
+  request_debugger_data_load : function( e )
+  {
+    this.debug_data = JSON.parse( e.target.responseText );
+
+    this.create_header_button( 'previous', [ 'debugger_previous' ], this.debugger_previous );
+    this.create_header_button( 'next', [ 'debugger_next' ], this.debugger_next );
+    this.create_header_button( 'enable debugger', [ 'enable_debugger' ], this.enable_debugger );
+    this.create_header_button( 'disable debugger', [ 'disable_debugger' ], this.disable_debugger );
+
+    this.event_container = document.createElement( 'div' );
+    this.event_container.classList.add( 'container' );
+    var div_event = document.createElement( 'div' );
+    div_event.classList.add( 'event' );
+    var event_name = document.createElement( 'p' );
+    event_name.appendChild( document.createTextNode( 'event' ) );
+    div_event.appendChild( event_name );
+    div_event.appendChild( this.event_container );
+    this.root_element.appendChild( div_event );
+
+    this.console_container = document.createElement( 'div' );
+    this.console_container.classList.add( 'container' );
+    var div_console = document.createElement( 'div' );
+    div_console.classList.add( 'console' );
+    var console_name = document.createElement( 'p' );
+    console_name.appendChild( document.createTextNode( 'console' ) );
+    div_console.appendChild( console_name );
+    div_console.appendChild( this.console_container );
+    this.root_element.appendChild( div_console );
+
+    this.stack_container = document.createElement( 'div' );
+    this.stack_container.classList.add( 'container' );
+    var div_stack = document.createElement( 'div' );
+    div_stack.classList.add( 'stack' );
+    var stack_name = document.createElement( 'p' );
+    stack_name.appendChild( document.createTextNode( 'stack' ) );
+    div_stack.appendChild( stack_name );
+    div_stack.appendChild( this.stack_container );
+    this.root_element.appendChild( div_stack );
+  },
+
+  request_debugger_data_failed : function()
+  {
+    alert( 'failed to retrieve debugger data' );
+  },
+
+  debugger_previous : function()
+  {
+    this.current -= 1;
+    this.debugger_update_state();
+  },
+
+  debugger_next : function()
+  {
+    this.current += 1;
+    this.debugger_update_state();
+  },
+
+  debugger_update_state : function()
+  {
+    if ( this.current >= this.debug_data.length )
+      this.current = this.debug_data.length - 1;
+    if ( this.current < 0 )
+      this.current = 0;
+
+    var item = this.debug_data[ this.current ];
+
+    if ( this.current_line != null )
+      this.current_line.classList.remove( 'debug_cursor' );
+    if ( item[ 0 ] == null )
+      this.current_line = null;
+    else
+    {
+      this.current_line = this.root_element.getElementsByClassName( 'lineno' + item[ 0 ] )[ 0 ];
+      this.current_line.classList.add( 'debug_cursor' );
+    }
+
+    this.event_container.empty();
+    this.event_container.appendChild( document.createTextNode( item[ 1 ] ) );
+    this.console_container.empty();
+    this.console_container.appendChild( document.createTextNode( item[ 2 ] ) );
+    this.stack_container.empty();
+    this.stack_container.appendChild( document.createTextNode( item[ 3 ] ) );
+  },
+}; // }}}
 
 window.onload = function() // {{{
 {
   // enable highlighting by default
   document.body.classList.add( 'highlight' );
 
-  var elements = document.getElementsByClassName( 'toggle_output_visible' );
+  var elements = document.getElementsByClassName( 'pythoncode' );
   for ( var i = 0; i < elements.length; i += 1 )
   {
-    var show_button = document.createElement( 'div' );
-    show_button.appendChild( document.createTextNode( 'show output' ) );
-    var hide_button = document.createElement( 'div' );
-    hide_button.appendChild( document.createTextNode( 'hide output' ) );
-    show_button.classList.add( 'show_output_button' );
-    hide_button.classList.add( 'hide_output_button' );
-    show_button.addEventListener( 'click', show_output.bind( elements[ i ] ) );
-    hide_button.addEventListener( 'click', hide_output.bind( elements[ i ] ) );
-    elements[ i ].insertBefore( hide_button, elements[ i ].childNodes[0] );
-    elements[ i ].insertBefore( show_button, elements[ i ].childNodes[0] );
+    var object = new PythonCode( elements[ i ] );
   }
 
   var controller = new Controller();

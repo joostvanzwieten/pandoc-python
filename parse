@@ -7,15 +7,22 @@ import sys
 import subprocess
 import json
 import code
+import inspect
 import cStringIO as StringIO
 import os.path
 import shutil
 import pygments, pygments.lexers, pygments.formatters
+import urllib
+import hashlib
 
 
 def escape_html( s ):
 
     return reduce( lambda t, a: t.replace( *a ), ( ('&','&amp;'), ('<','&lt;'), ('>','&gt;'), ('"','&quot;') ), s )
+
+def escape_url( url ):
+
+    return urllib.quote( url )
 
 
 class HtmlFormatter( pygments.formatters.HtmlFormatter ):
@@ -26,13 +33,15 @@ class HtmlFormatter( pygments.formatters.HtmlFormatter ):
 
     def _wrap_code( self, source ):
 
+        lineno = 0
         for i, t in source:
             if i == 1:
+                lineno += 1
                 if t.endswith( '\r\n' ):
                     t, end = t[ :-2 ], t[ -2: ]
                 elif t.endswith( '\n' ):
                     t, end = t[ :-1 ], t[ -1: ]
-                t = '<div class="line">{}</div>{}'.format( t, end )
+                t = '<div class="line lineno{}">{}</div>{}'.format( lineno, t, end )
             yield i, t
 
 
@@ -136,6 +145,125 @@ class IC( code.InteractiveConsole ):
         matplotlib.pyplot.show = show_wrapper
 
 
+class Debugger:
+
+    def __init__( self, code, globals = None, locals = None ):
+
+        if globals is None:
+            globals = {}
+        if locals is None:
+            locals = globals
+
+        self._code = code
+        self._globals = globals
+        self._locals = locals
+
+    def run( self ):
+
+        self.items = []
+        self._console = StringIO.StringIO()
+
+        self._calling_frame = inspect.currentframe()
+        self._code_filename = self._code.co_filename
+
+        # capture stdout, stderr
+        orig_stdout = sys.stdout
+        orig_stderr = sys.stderr
+        try:
+            sys.stdout = self._console
+            sys.stderr = self._console
+
+            sys.settrace( self._trace_callback )
+            exec( self._code, self._globals, self._locals )
+        finally:
+            sys.settrace( None )
+            sys.stdout = orig_stdout
+            sys.stderr = orig_stderr
+
+    def _trace_callback( self, frame, event, arg ):
+
+        if event == 'line':
+            self.callback_line( frame )
+        elif event == 'call':
+            response = self.callback_call( frame, arg )
+            if response == False: # disable trace for this function
+                return
+        elif event == 'return':
+            self.callback_return( frame, arg )
+#       elif event == 'exception':
+#           pass # self.callback_exception( frame, arg )
+#       elif event == 'c_call':
+#           pass
+#       elif event == 'c_exception':
+#           pass
+#       elif event == 'c_return':
+#           pass
+
+        return self._trace_callback
+
+    def callback_call( self, frame, argument_list ):
+
+        self._append_item( 'call', frame, argument_list )
+        if frame.f_code.co_filename == self._code_filename:
+#           print( 'call @', frame.f_code.co_filename, frame.f_lineno )
+            return True
+        else:
+            return False
+
+    def callback_return( self, frame, return_value ):
+
+        self._append_item( 'return', frame, return_value )
+
+        pass
+#       if frame.f_code.co_filename == self._code_filename:
+#           print( 'return @', frame.f_code.co_filename, frame.f_lineno )
+
+    def callback_line( self, frame ):
+
+        if frame.f_code.co_filename != self._code_filename:
+            return
+
+        self._append_item( 'line', frame, None )
+
+    # TODO:
+    # def callback_exception( self, frame, exc_info ):
+
+    def _append_item( self, event, frame, arg ):
+
+        stack = StringIO.StringIO()
+        print_stack = lambda *args, **kargs: print( *args, file = stack, **kargs )
+
+        f = frame
+        while f and f is not self._calling_frame:
+            print_stack( 'File {!r}, line {}, in {}'.format( f.f_code.co_filename, f.f_lineno, f.f_code.co_name ) )
+            if f.f_globals is f.f_locals:
+                print_stack( '  locals, globals:' )
+                for k, v in sorted( f.f_locals.items() ):
+                    if k.startswith( '_' ):
+                        continue
+                    print_stack( '    {}: {!r}'.format( k, v ) )
+            else:
+                print_stack( '  locals:' )
+                for k, v in sorted( f.f_locals.items() ):
+                    if k.startswith( '_' ):
+                        continue
+                    print_stack( '    {}: {!r}'.format( k, v ) )
+                print_stack( '  globals:' )
+                for k, v in sorted( f.f_globals.items() ):
+                    if k.startswith( '_' ):
+                        continue
+                    print_stack( '    {}: {!r}'.format( k, v ) )
+            f = f.f_back
+
+        event = '{}, file {!r}, line {}, in {}, arg {!r}'.format( event, frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name, arg )
+#       event = event, frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name, repr( arg )
+        if frame.f_code.co_filename == self._code_filename:
+            line = frame.f_lineno
+        else:
+            line = None
+        self.items.append( ( line, event, self._console.getvalue(), stack.getvalue() ) )
+
+
 def convert_ast( doc, doc_name ):
 
 #   python_lexer = pygments.lexers.get_lexer_by_name( 'python' )
@@ -181,6 +309,7 @@ def convert_ast( doc, doc_name ):
 
             # determine if we must run the code through an interpreter
             code_in_ic = False
+            code_in_debugger = False
             # if the class list contains ic (interactive console)
             if 'ic' in  data[ 0 ][ 1 ]:
                 code_in_ic = True
@@ -189,6 +318,9 @@ def convert_ast( doc, doc_name ):
                 code_in_ic = True
                 if 'default_output_hidden' in src[ 0 ]:
                     default_output_hidden = True
+                if 'debugger' in src[ 0 ]:
+                    code_in_debugger = True
+                    code_in_ic = False
                 src = src[ 1: ]
 
             if code_in_ic:
@@ -211,6 +343,24 @@ def convert_ast( doc, doc_name ):
                 code_html = pygments.highlight( output, python_console_lexer, html_console_formatter )
                 code_latex = pygments.highlight( output, python_console_lexer, latex_formatter )
 
+            elif code_in_debugger:
+
+                c = compile( '\n'.join( src ), mode = 'exec', filename = '<script>', dont_inherit = True )
+                db = Debugger( c )
+                db.run()
+
+                json_data = json.dumps( db.items )
+                json_hash = hashlib.sha1( json_data ).hexdigest()
+                json_filename = 'debug_{}.json'.format( json_hash )
+                with open( json_filename, 'w' ) as debug_info:
+                    debug_info.write( json_data )
+
+                # highlighting of src
+                code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
+                code_latex = pygments.highlight( '\n'.join( src ), python_lexer, latex_formatter )
+
+                code_html = '<a href="{}" class="debugger_data_url">debugger_data_url</a>{}'.format( escape_url( json_filename ), code_html )
+
             else:
 
                 # highlighting of src
@@ -220,6 +370,8 @@ def convert_ast( doc, doc_name ):
             classes = [ 'pythoncode' ]
             if default_output_hidden:
                 classes.extend( [ 'toggle_output_visible', 'output_hidden' ] )
+            if code_in_debugger:
+                classes.append( 'debugger' )
             classes = ' '.join( classes )
             code_html = '<div class="{}"><div class="container">\n{}\n</div></div>'.format( classes, code_html )
 
