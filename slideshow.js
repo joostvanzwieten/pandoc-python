@@ -96,6 +96,24 @@ Controller.prototype =
       else
         document.body.classList.add( 'highlight' );
     }
+    else if ( e.keyCode == 188 ) // ,, debug step back
+    {
+      if ( this.debug == undefined )
+        return;
+      if ( e.shiftKey )
+        this.debug.debugger_first();
+      else
+        this.debug.debugger_previous();
+    }
+    else if ( e.keyCode == 190 ) // ., debug step forward
+    {
+      if ( this.debug == undefined )
+        return;
+      if ( e.shiftKey )
+        this.debug.debugger_last();
+      else
+        this.debug.debugger_next();
+    }
     else
       return;
 
@@ -108,9 +126,10 @@ Controller.prototype =
   }
 }; // }}}
 
-function PythonCode( root_element ) // {{{
+function PythonCode( root_element, controller ) // {{{
 {
   this.root_element = root_element;
+  this.controller = controller;
 
   if ( this.root_element.classList.contains( 'toggle_output_visible' ) )
   {
@@ -166,6 +185,8 @@ PythonCode.prototype =
     this.current = 0;
     this.current_line = null;
     this.debugger_update_state();
+
+    this.controller.debug = this;
   },
 
   disable_debugger : function()
@@ -175,6 +196,10 @@ PythonCode.prototype =
     {
       this.current_line.classList.remove( 'debug_cursor' );
       this.current_line = null;
+    }
+    if ( this.controller.debug === this )
+    {
+      this.controller.debug = undefined;
     }
   },
 
@@ -235,6 +260,18 @@ PythonCode.prototype =
     this.debugger_update_state();
   },
 
+  debugger_first : function()
+  {
+    this.current = 0;
+    this.debugger_update_state();
+  },
+
+  debugger_last : function()
+  {
+    this.current = this.debug_data.length - 1;
+    this.debugger_update_state();
+  },
+
   debugger_update_state : function()
   {
     if ( this.current >= this.debug_data.length )
@@ -276,7 +313,7 @@ window.onload = function() // {{{
   {
     try
     {
-      var object = new PythonCode( elements[ i ] );
+      var object = new PythonCode( elements[ i ], controller );
     }
     catch( err )
     {
