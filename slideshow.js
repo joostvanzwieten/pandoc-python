@@ -268,14 +268,21 @@ window.onload = function() // {{{
   // enable highlighting by default
   document.body.classList.add( 'highlight' );
 
+  var controller = new Controller();
+  document.addEventListener( 'keydown', controller.key_handler.bind( controller ) );
+
   var elements = document.getElementsByClassName( 'pythoncode' );
   for ( var i = 0; i < elements.length; i += 1 )
   {
-    var object = new PythonCode( elements[ i ] );
+    try
+    {
+      var object = new PythonCode( elements[ i ] );
+    }
+    catch( err )
+    {
+      console.log( 'ignored error: ' + err.message );
+    }
   }
-
-  var controller = new Controller();
-  document.addEventListener( 'keydown', controller.key_handler.bind( controller ) );
 }; // }}}
 
 // Function.prototype.bind {{{
