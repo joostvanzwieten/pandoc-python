@@ -300,28 +300,18 @@ def convert_ast( doc, doc_name ):
             if item == 'HorizontalRule':
                 continue
 
-        if isinstance( item, dict ) and 'CodeBlock' in item:
+        if isinstance( item, dict ) and 'CodeBlock' in item and item[ 'CodeBlock' ][ 1 ].startswith( '>>>' ):
 
             default_output_hidden = False
 
             data = item[ 'CodeBlock' ]
             src = ( data[ 1 ] + '\n' ).splitlines()
 
-            # determine if we must run the code through an interpreter
-            code_in_ic = False
-            code_in_debugger = False
-            # if the class list contains ic (interactive console)
-            if 'ic' in  data[ 0 ][ 1 ]:
-                code_in_ic = True
-            # or if the code starts with >>>
-            elif src[ 0 ].startswith( '>>>' ):
-                code_in_ic = True
-                if 'default_output_hidden' in src[ 0 ]:
-                    default_output_hidden = True
-                if 'debugger' in src[ 0 ]:
-                    code_in_debugger = True
-                    code_in_ic = False
-                src = src[ 1: ]
+            code_in_ic = 'interactive_console' in src[ 0 ] or 'ic' in src[ 0 ]
+            code_in_debugger = 'debugger' in src[ 0 ]
+            default_output_hidden = 'default_output_hidden' in src[ 0 ]
+
+            src = src[ 1: ]
 
             if code_in_ic:
 
