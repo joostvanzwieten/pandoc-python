@@ -202,7 +202,7 @@ div.pythoncode.output_hidden div.header_button.show_output
   display : block;
 }
 
-div.pythoncode.output_hidden div.header_button.hide_output
+div.pythoncode.output_hidden div.header_button.hide_output, div.pythoncode.output_hidden span.gp
 {
   display : none;
 }
