@@ -131,7 +131,7 @@ function PythonCode( root_element, controller ) // {{{
   this.root_element = root_element;
   this.controller = controller;
 
-  if ( this.root_element.classList.contains( 'toggle_output_visible' ) )
+  if ( this.root_element.classList.contains( 'interactive_console' ) )
   {
     this.create_header_button( 'show output', [ 'show_output' ], this.show_output );
     this.create_header_button( 'hide output', [ 'hide_output' ], this.hide_output );

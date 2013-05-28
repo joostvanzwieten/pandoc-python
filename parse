@@ -358,10 +358,12 @@ def convert_ast( doc, doc_name ):
                 code_latex = pygments.highlight( '\n'.join( src ), python_lexer, latex_formatter )
 
             classes = [ 'pythoncode' ]
-            if default_output_hidden:
-                classes.extend( [ 'toggle_output_visible', 'output_hidden' ] )
+            if code_in_ic:
+                classes.append( 'interactive_console' )
             if code_in_debugger:
                 classes.append( 'debugger' )
+            if default_output_hidden:
+                classes.append( 'output_hidden' )
             classes = ' '.join( classes )
             code_html = '<div class="{}"><div class="container">\n{}\n</div></div>'.format( classes, code_html )
 
