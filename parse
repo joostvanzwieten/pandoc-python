@@ -63,8 +63,6 @@ class HtmlFormatterIC( pygments.formatters.HtmlFormatter ):
                     cls = 'code'
                 else:
                     cls = 'output'
-                if len( t ) == 0:
-                    t = '<span> </span>' # FIXME
                 t = '<div class="line {}">{}</div>{}'.format( cls, t, end )
             yield i, t
 
