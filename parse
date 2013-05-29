@@ -169,17 +169,19 @@ class Debugger:
         orig_stdout = sys.stdout
         orig_stderr = sys.stderr
         try:
-            sys.stdout = self._console
-            sys.stderr = self._console
+            try:
+                sys.stdout = self._console
+                sys.stderr = self._console
 
-            sys.settrace( self._trace_callback )
-            exec( self._code, self._globals, self._locals )
+                sys.settrace( self._trace_callback )
+                exec( self._code, self._globals, self._locals )
+            finally:
+                sys.settrace( None )
+                sys.stdout = orig_stdout
+                sys.stderr = orig_stderr
         except:
-            pass
-        finally:
-            sys.settrace( None )
-            sys.stdout = orig_stdout
-            sys.stderr = orig_stderr
+            print( self._last_exception_string, end = '', file = self._console )
+            self._append_item( 'script exited with exception', None, None )
 
     def _trace_callback( self, frame, event, arg ):
 
@@ -193,7 +195,6 @@ class Debugger:
             self.callback_return( frame, arg )
         elif event == 'exception':
             self.callback_exception( frame, arg )
-            return
 #       elif event == 'c_call':
 #           pass
 #       elif event == 'c_exception':
@@ -205,7 +206,7 @@ class Debugger:
 
     def callback_call( self, frame, argument_list ):
 
-        self._append_item( 'call', frame, argument_list )
+        self._append_item( 'call', frame, None )
         if frame.f_code.co_filename == self._code_filename:
 #           print( 'call @', frame.f_code.co_filename, frame.f_lineno )
             return True
@@ -214,9 +215,7 @@ class Debugger:
 
     def callback_return( self, frame, return_value ):
 
-        self._append_item( 'return', frame, return_value )
-
-        pass
+        self._append_item( 'return', frame, 'return value: {!r}'.format( return_value ) )
 #       if frame.f_code.co_filename == self._code_filename:
 #           print( 'return @', frame.f_code.co_filename, frame.f_lineno )
 
@@ -229,9 +228,8 @@ class Debugger:
 
     def callback_exception( self, frame, exc_info ):
 
-        traceback.print_exception( *exc_info, file = self._console )
-        self._append_item( 'exception', frame, None )
-        sys.settrace( None )
+        self._last_exception_string = ''.join( traceback.format_exception( *exc_info ) )
+        self._append_item( 'exception', frame, self._last_exception_string )
 
     def _append_item( self, event, frame, arg ):
 
@@ -260,9 +258,12 @@ class Debugger:
                     print_stack( '    {}: {!r}'.format( k, v ) )
             f = f.f_back
 
-        event = '{}, file {!r}, line {}, in {}, arg {!r}'.format( event, frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name, arg )
+        if frame:
+            event = '{}, file {!r}, line {}, in {}'.format( event, frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name )
+        if arg:
+            event = '{}\n{}'.format( event, arg )
 #       event = event, frame.f_code.co_filename, frame.f_lineno, frame.f_code.co_name, repr( arg )
-        if frame.f_code.co_filename == self._code_filename:
+        if frame and frame.f_code.co_filename == self._code_filename:
             line = frame.f_lineno
         else:
             line = None
