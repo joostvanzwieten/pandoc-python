@@ -223,12 +223,12 @@ div.pythoncode div.header_button.disable_debugger
   display : none;
 }
 
-div.pythoncode.debugger_enabled div.header_button.enable_debugger, div.pythoncode div.header_button.debugger_previous, div.pythoncode div.header_button.debugger_next
+div.pythoncode.debugger_enabled div.header_button.enable_debugger, div.pythoncode div.header_button.debugger_previous, div.pythoncode div.header_button.debugger_next, div.pythoncode div.header_button.debugger_first, div.pythoncode div.header_button.debugger_last
 {
   display : none;
 }
 
-div.pythoncode.debugger_enabled div.header_button.disable_debugger, div.pythoncode.debugger_enabled div.header_button.debugger_previous, div.pythoncode.debugger_enabled div.header_button.debugger_next
+div.pythoncode.debugger_enabled div.header_button.disable_debugger, div.pythoncode.debugger_enabled div.header_button.debugger_previous, div.pythoncode.debugger_enabled div.header_button.debugger_next, div.pythoncode.debugger_enabled div.header_button.debugger_first, div.pythoncode.debugger_enabled div.header_button.debugger_last
 {
   display : block;
 }

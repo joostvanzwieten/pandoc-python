@@ -207,8 +207,10 @@ PythonCode.prototype =
   {
     this.debug_data = JSON.parse( e.target.responseText );
 
+    this.create_header_button( 'first', [ 'debugger_first' ], this.debugger_first );
     this.create_header_button( 'previous', [ 'debugger_previous' ], this.debugger_previous );
     this.create_header_button( 'next', [ 'debugger_next' ], this.debugger_next );
+    this.create_header_button( 'last', [ 'debugger_last' ], this.debugger_last );
     this.create_header_button( 'enable debugger', [ 'enable_debugger' ], this.enable_debugger );
     this.create_header_button( 'disable debugger', [ 'disable_debugger' ], this.disable_debugger );
 
