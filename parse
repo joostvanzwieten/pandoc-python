@@ -17,6 +17,17 @@ import hashlib
 import traceback
 
 
+# TEMPORARY HACK
+def input_wrapper( *args ):
+    raise NotImplementedError
+def raw_input_wrapper( *args ):
+    raise NotImplementedError
+import __builtin__
+__builtin__.input = input_wrapper
+__builtin__.raw_input = raw_input_wrapper
+# END TEMPORARY HACK
+
+
 def escape_html( s ):
 
     return reduce( lambda t, a: t.replace( *a ), ( ('&','&amp;'), ('<','&lt;'), ('>','&gt;'), ('"','&quot;') ), s )
