@@ -352,21 +352,26 @@ def convert_ast( doc, doc_name ):
 
             elif code_in_debugger:
 
-                c = compile( '\n'.join( src ), mode = 'exec', filename = '<script>', dont_inherit = True )
-                db = Debugger( c )
-                db.run()
+                try:
+                    c = compile( '\n'.join( src ), mode = 'exec', filename = '<script>', dont_inherit = True )
+                except:
+                    c = None
+                else:
+                    db = Debugger( c )
+                    db.run()
 
-                json_data = json.dumps( db.items )
-                json_hash = hashlib.sha1( json_data ).hexdigest()
-                json_filename = 'debug_{}.json'.format( json_hash )
-                with open( json_filename, 'w' ) as debug_info:
-                    debug_info.write( json_data )
+                    json_data = json.dumps( db.items )
+                    json_hash = hashlib.sha1( json_data ).hexdigest()
+                    json_filename = 'debug_{}.json'.format( json_hash )
+                    with open( json_filename, 'w' ) as debug_info:
+                        debug_info.write( json_data )
 
                 # highlighting of src
                 code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
                 code_latex = pygments.highlight( '\n'.join( src ), python_lexer, latex_formatter )
 
-                code_html = '<a href="{}" class="debugger_data_url">debugger_data_url</a>{}'.format( escape_url( json_filename ), code_html )
+                if c is not None:
+                    code_html = '<a href="{}" class="debugger_data_url">debugger_data_url</a>{}'.format( escape_url( json_filename ), code_html )
 
             else:
 
