@@ -197,15 +197,20 @@ class Debugger:
     def _trace_callback( self, frame, event, arg ):
 
         if event == 'line':
-            self.callback_line( frame )
+            if frame.f_code.co_filename != self._code_filename:
+                # disable trace for this frame
+                return
+            self._append_item( 'line', frame, None )
         elif event == 'call':
-            response = self.callback_call( frame, arg )
-            if response == False: # disable trace for this function
+            self._append_item( 'call', frame, None )
+            if frame.f_code.co_filename != self._code_filename:
+                # disable trace for this function
                 return
         elif event == 'return':
-            self.callback_return( frame, arg )
+            self._append_item( 'return', frame, 'return value: {!r}'.format( arg ) )
         elif event == 'exception':
-            self.callback_exception( frame, arg )
+            self._last_exception_string = ''.join( traceback.format_exception( *arg ) )
+            self._append_item( 'exception', frame, self._last_exception_string )
 #       elif event == 'c_call':
 #           pass
 #       elif event == 'c_exception':
@@ -214,33 +219,6 @@ class Debugger:
 #           pass
 
         return self._trace_callback
-
-    def callback_call( self, frame, argument_list ):
-
-        self._append_item( 'call', frame, None )
-        if frame.f_code.co_filename == self._code_filename:
-#           print( 'call @', frame.f_code.co_filename, frame.f_lineno )
-            return True
-        else:
-            return False
-
-    def callback_return( self, frame, return_value ):
-
-        self._append_item( 'return', frame, 'return value: {!r}'.format( return_value ) )
-#       if frame.f_code.co_filename == self._code_filename:
-#           print( 'return @', frame.f_code.co_filename, frame.f_lineno )
-
-    def callback_line( self, frame ):
-
-        if frame.f_code.co_filename != self._code_filename:
-            return
-
-        self._append_item( 'line', frame, None )
-
-    def callback_exception( self, frame, exc_info ):
-
-        self._last_exception_string = ''.join( traceback.format_exception( *exc_info ) )
-        self._append_item( 'exception', frame, self._last_exception_string )
 
     def _append_item( self, event, frame, arg ):
 
