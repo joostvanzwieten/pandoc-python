@@ -201,22 +201,16 @@ class Debugger:
                 # disable trace for this frame
                 return
             self._append_item( 'line', frame, None )
-        elif event == 'call':
-            self._append_item( 'call', frame, None )
+        elif event == 'call' or event == 'c_call':
+            self._append_item( event, frame, None )
             if frame.f_code.co_filename != self._code_filename:
                 # disable trace for this function
                 return
-        elif event == 'return':
-            self._append_item( 'return', frame, 'return value: {!r}'.format( arg ) )
-        elif event == 'exception':
+        elif event == 'return' or event == 'c_return':
+            self._append_item( event, frame, 'return value: {!r}'.format( arg ) )
+        elif event == 'exception' or event == c_exception:
             self._last_exception_string = ''.join( traceback.format_exception( *arg ) )
-            self._append_item( 'exception', frame, self._last_exception_string )
-#       elif event == 'c_call':
-#           pass
-#       elif event == 'c_exception':
-#           pass
-#       elif event == 'c_return':
-#           pass
+            self._append_item( event, frame, self._last_exception_string )
 
         return self._trace_callback
 
