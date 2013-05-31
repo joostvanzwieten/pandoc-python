@@ -250,23 +250,24 @@ class Debugger:
         f = frame
         while f and f is not self._calling_frame:
             print_stack( 'File {!r}, line {}, in {}'.format( f.f_code.co_filename, f.f_lineno, f.f_code.co_name ) )
-            if f.f_globals is f.f_locals:
-                print_stack( '  locals, globals:' )
-                for k, v in sorted( f.f_locals.items() ):
-                    if k.startswith( '_' ):
-                        continue
-                    print_stack( '    {}: {!r}'.format( k, v ) )
-            else:
-                print_stack( '  locals:' )
-                for k, v in sorted( f.f_locals.items() ):
-                    if k.startswith( '_' ):
-                        continue
-                    print_stack( '    {}: {!r}'.format( k, v ) )
-                print_stack( '  globals:' )
-                for k, v in sorted( f.f_globals.items() ):
-                    if k.startswith( '_' ):
-                        continue
-                    print_stack( '    {}: {!r}'.format( k, v ) )
+            if f.f_code.co_filename == self._code_filename:
+                if f.f_globals is f.f_locals:
+                    print_stack( '  locals, globals:' )
+                    for k, v in sorted( f.f_locals.items() ):
+                        if k.startswith( '_' ):
+                            continue
+                        print_stack( '    {}: {!r}'.format( k, v ) )
+                else:
+                    print_stack( '  locals:' )
+                    for k, v in sorted( f.f_locals.items() ):
+                        if k.startswith( '_' ):
+                            continue
+                        print_stack( '    {}: {!r}'.format( k, v ) )
+                    print_stack( '  globals:' )
+                    for k, v in sorted( f.f_globals.items() ):
+                        if k.startswith( '_' ):
+                            continue
+                        print_stack( '    {}: {!r}'.format( k, v ) )
             f = f.f_back
 
         if frame:
