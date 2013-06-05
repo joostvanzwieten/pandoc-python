@@ -17,6 +17,8 @@ function Controller() // {{{
       document.body.classList.add( 'slideshow' );
     }
   }
+
+  window.addEventListener( 'hashchange', this.hash_change_event.bind( this ), false );
 }
 
 Controller.prototype =
@@ -123,7 +125,32 @@ Controller.prototype =
     // http://www.w3.org/wiki/Handling_events_with_JavaScript
     e.stopPropagation();
     e.preventDefault();
-  }
+  },
+
+  hash_change_event : function( e )
+  {
+    var h = window.location.hash;
+    if ( h.slice( 0, 11 ) == '#slideshow-' )
+    {
+      if ( this.current == null || h.slice( 11 ) != this.current.id )
+      {
+        if ( this.current != null )
+          this.current.classList.remove( 'current' );
+        this.current = document.getElementById( h.slice( 11 ) );
+        if ( this.current != null )
+        {
+          this.current.classList.add( 'current' );
+          document.body.classList.add( 'slideshow' );
+          if ( window.scroll != undefined )
+            window.scroll( 0, 0 );
+        }
+      }
+      else
+        document.body.classList.add( 'slideshow' );
+    }
+    else
+      document.body.classList.remove( 'slideshow' );
+  },
 }; // }}}
 
 function PythonCode( root_element, controller ) // {{{
