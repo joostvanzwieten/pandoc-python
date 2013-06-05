@@ -290,7 +290,7 @@ def convert_ast( doc, doc_name ):
             if item == 'HorizontalRule':
                 continue
 
-        if isinstance( item, dict ) and 'CodeBlock' in item and item[ 'CodeBlock' ][ 1 ].startswith( '>>>' ):
+        if isinstance( item, dict ) and 'CodeBlock' in item and item[ 'CodeBlock' ][ 1 ].startswith( '# python' ):
 
             default_output_hidden = False
 
