@@ -301,7 +301,7 @@ class Debugger:
         self.items.append( ( line, event, self._console.getvalue(), stack.getvalue() ) )
 
 
-def convert_ast( doc, doc_name ):
+def convert_ast( doc, doc_name, at_build_dir ):
 
 #   python_lexer = pygments.lexers.get_lexer_by_name( 'python' )
     python_lexer = pygments.lexers.PythonLexer()
@@ -390,7 +390,7 @@ def convert_ast( doc, doc_name ):
                     json_data = json.dumps( db.items )
                     json_hash = hashlib.sha1( json_data ).hexdigest()
                     json_filename = 'debug_{}.json'.format( json_hash )
-                    with open( json_filename, 'w' ) as debug_info:
+                    with open( at_build_dir( json_filename ), 'w' ) as debug_info:
                         debug_info.write( json_data )
 
                 # highlighting of src
@@ -440,23 +440,58 @@ def convert_ast( doc, doc_name ):
 
 if __name__ == '__main__':
 
+    # default settings
+
+    root = os.path.split( __file__ )[ 0 ]
+    build_dir = '.'
+
+    at_share_dir = lambda f: os.path.join( root, f )
+    at_build_dir = lambda f: os.path.join( build_dir, f )
+
+    # process command line arguments
+
     src = sys.argv[ 1 ]
-    name, ext = os.path.splitext( src )
+    doc_name, ext = os.path.splitext( src )
     if not os.path.isfile( src ):
         print( 'No such file: {}'.format( src ) )
         raise SystemExit
 
-    pandoc = subprocess.Popen( [ 'pandoc', '-t', 'json', src ], stdout = subprocess.PIPE )
+    # convert source to json using pandoc
+
+    pandoc = subprocess.Popen( [ 'pandoc', '--to=json', src ], stdout = subprocess.PIPE )
     doc, tmp = pandoc.communicate()
     doc = json.loads( doc )
 
-    root = os.path.split( __file__ )[ 0 ]
-    p = lambda f: os.path.join( root, f )
+    # process document
 
-    doc = json.dumps( convert_ast( doc, name ) )
-    pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'html', '--standalone', '--email-obfuscation=none', '--mathjax=http://cdn.mathjax.org/mathjax/2.2-beta/MathJax.js?config=TeX-AMS-MML_HTMLorMML', '--css=pygments.css', '--css=slideshow.css', '--include-in-header', p( 'html_include' ), '--output', name + '.xhtml' ], stdin = subprocess.PIPE )
+    doc = json.dumps( convert_ast( doc, doc_name, at_build_dir ) )
+
+    # copy css and javascript files to the build directory
+
+    hashed_names = {}
+    for name in ( 'slideshow.css', 'slideshow.js', 'pygments.css' ):
+        with open( at_share_dir( name ) ) as f:
+            hashed_name = '{}-{}'.format( hashlib.sha1( f.read() ).hexdigest(), name )
+        hashed_names[ name ] = hashed_name
+        if not os.path.exists( at_build_dir( hashed_name ) ):
+            shutil.copy( at_share_dir( name ), at_build_dir( hashed_name ) )
+        if name == 'slideshow.js':
+            include_slideshow_js = at_build_dir( 'include-{}'.format( hashed_name ) )
+            with open( include_slideshow_js, 'w' ) as f:
+                print( '<script type="text/javascript" src="{}"></script>'.format( hashed_name ), file = f )
+
+    # generate html using pandoc
+
+    pandoc = subprocess.Popen( [
+        'pandoc',
+        '--from=json',
+        '--to=html',
+        '--standalone',
+        '--email-obfuscation=none',
+        '--mathjax=http://cdn.mathjax.org/mathjax/2.2-beta/MathJax.js?config=TeX-AMS-MML_HTMLorMML',
+        '--css={}'.format( hashed_names[ 'pygments.css' ] ),
+        '--css={}'.format( hashed_names[ 'slideshow.css' ] ),
+        '--include-in-header={}'.format( include_slideshow_js ),
+        '--output={}'.format( at_build_dir( doc_name + '.xhtml' ) ),
+    ], stdin = subprocess.PIPE )
     pandoc.communicate( doc )
-
-    for f in ( 'slideshow.css', 'slideshow.js', 'pygments.css' ):
-        if not os.path.exists( f ):
-            shutil.copy( p( f ), f )
