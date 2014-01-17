@@ -301,7 +301,7 @@ class Debugger:
         self.items.append( ( line, event, self._console.getvalue(), stack.getvalue() ) )
 
 
-def convert_ast( doc, doc_name, at_build_dir ):
+def convert_ast( doc, doc_name, at_build_dir, html_header ):
 
 #   python_lexer = pygments.lexers.get_lexer_by_name( 'python' )
     python_lexer = pygments.lexers.PythonLexer()
@@ -355,6 +355,7 @@ def convert_ast( doc, doc_name, at_build_dir ):
             code_in_ic = 'interactive_console' in src0 or 'ic' in src0
             code_in_debugger = 'debugger' in src0
             default_output_hidden = 'default_output_hidden' in src0
+            attributes = {}
 
             src = src[ 1: ]
 
@@ -382,22 +383,19 @@ def convert_ast( doc, doc_name, at_build_dir ):
                 try:
                     c = compile( '\n'.join( src ), mode = 'exec', filename = '<script>', dont_inherit = True )
                 except:
-                    c = None
+                    pass
+                    # TODO: show error in html
                 else:
                     db = Debugger( c )
                     db.run()
 
                     json_data = json.dumps( db.items )
                     json_hash = hashlib.sha1( json_data ).hexdigest()
-                    json_filename = 'debug_{}.json'.format( json_hash )
-                    with open( at_build_dir( json_filename ), 'w' ) as debug_info:
-                        debug_info.write( json_data )
+                    html_header.append( '<script type="text/javascript">window.python_trace_{} = {};</script>'.format( json_hash, escape_html( json_data ) ) )
+                    attributes[ 'python_trace' ] = 'python_trace_{}'.format( json_hash )
 
                 # highlighting of src
                 code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
-
-                if c is not None:
-                    code_html = '<a href="{}" class="debugger_data_url">debugger_data_url</a>{}'.format( escape_url( json_filename ), code_html )
 
             else:
 
@@ -411,8 +409,9 @@ def convert_ast( doc, doc_name, at_build_dir ):
                 classes.append( 'debugger' )
             if default_output_hidden:
                 classes.append( 'output_hidden' )
-            classes = ' '.join( classes )
-            code_html = '<div class="{}"><div class="container">\n{}\n</div></div>'.format( classes, code_html )
+            attributes[ 'class' ] = ' '.join( classes )
+            attributes = ' '.join( '{}="{}"'.format( key, escape_html( value ) ) for key, value in attributes.iteritems() )
+            code_html = '<div {}><div class="container">\n{}\n</div></div>'.format( attributes, code_html )
 
             if 'hidden' not in data[ 0 ][ 1 ] and 'hidden' not in src0:
 
@@ -456,13 +455,16 @@ def process_document( src, share_dir, build_dir, hashed_dependencies ):
 
     # process document
 
-    doc = json.dumps( convert_ast( doc, doc_name, at_build_dir ) )
+    html_header = []
+    doc = json.dumps( convert_ast( doc, doc_name, at_build_dir, html_header ) )
 
     # generate html header supplement
 
+    html_header.append( '<script type="text/javascript" src="{}"></script>'.format( hashed_dependencies[ 'slideshow.js' ] ) )
     html_include = at_build_dir( '{}.html_include'.format( doc_name ) )
     with open( html_include, 'w' ) as f:
-        print( '<script type="text/javascript" src="{}"></script>'.format( hashed_dependencies[ 'slideshow.js' ] ), file = f )
+        for line in html_header:
+            print( line, file = f )
 
     # generate html using pandoc
 

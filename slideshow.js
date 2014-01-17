@@ -187,14 +187,9 @@ function PythonCode( root_element, controller ) // {{{
 
   if ( this.root_element.classList.contains( 'debugger' ) )
   {
-    // FIXME: properly check existence of at least one data url
-    json_url = this.root_element.getElementsByClassName( 'debugger_data_url' )[ 0 ];
-    json_url = json_url.href;
-    var request = new XMLHttpRequest();
-    request.open( 'GET', json_url, true );
-    request.addEventListener( 'load', this.request_debugger_data_load.bind( this ) );
-    request.addEventListener( 'failed', this.request_debugger_data_failed.bind( this ) );
-    request.send();
+    // FIXME: properly check existence python_trace attribute
+    var var_name = this.root_element.getAttribute( 'python_trace' );
+    this.debugger_data_load( window[ var_name ] );
   }
 }
 
@@ -251,9 +246,9 @@ PythonCode.prototype =
     }
   },
 
-  request_debugger_data_load : function( e )
+  debugger_data_load : function( data )
   {
-    this.debug_data = JSON.parse( e.target.responseText );
+    this.debug_data = data;
 
     this.create_header_button( 'first', [ 'debugger_first' ], this.debugger_first );
     this.create_header_button( 'previous', [ 'debugger_previous' ], this.debugger_previous );
@@ -291,11 +286,6 @@ PythonCode.prototype =
     div_stack.appendChild( stack_name );
     div_stack.appendChild( this.stack_container );
     this.root_element.appendChild( div_stack );
-  },
-
-  request_debugger_data_failed : function()
-  {
-    alert( 'failed to retrieve debugger data' );
   },
 
   debugger_previous : function()
