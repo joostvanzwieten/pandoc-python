@@ -49,19 +49,15 @@ __builtin__.raw_input = raw_input_wrapper
 # END TEMPORARY HACK
 
 
-def _append_raw_block_pandoc_lt_12( lst, html = None, latex = None ):
+def _append_raw_block_pandoc_lt_12( lst, html = None ):
 
     if html:
         lst.append( { 'RawBlock' : [ 'html', html ] } )
-    if latex:
-        lst.append( { 'RawBlock' : [ 'latex', latex ] } )
 
-def _append_raw_block_pandoc_ge_12( lst, html = None, latex = None ):
+def _append_raw_block_pandoc_ge_12( lst, html = None ):
 
     if html:
         lst.append( { 't': 'RawBlock', 'c' : [ 'html', html ] } )
-    if latex:
-        lst.append( { 't': 'RawBlock', 'c' : [ 'latex', latex ] } )
 
 pandoc = subprocess.Popen( [ 'pandoc', '--version' ], stdout = subprocess.PIPE )
 stdout, stderr = pandoc.communicate()
@@ -313,7 +309,6 @@ def convert_ast( doc, doc_name ):
 #   html_formatter = pygments.formatters.get_formatter_by_name( 'html' )
     html_formatter = HtmlFormatter( linenos = False, cssclass = "pythoncode" )
     html_console_formatter = HtmlFormatterIC( linenos = False, cssclass = "pythoncode" )
-    latex_formatter = pygments.formatters.LatexFormatter( linenos = False )
 
 
     ic = IC( prefix = doc_name )
@@ -381,7 +376,6 @@ def convert_ast( doc, doc_name ):
 
                 # highlighting of src and output
                 code_html = pygments.highlight( output, python_console_lexer, html_console_formatter )
-                code_latex = pygments.highlight( output, python_console_lexer, latex_formatter )
 
             elif code_in_debugger:
 
@@ -401,7 +395,6 @@ def convert_ast( doc, doc_name ):
 
                 # highlighting of src
                 code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
-                code_latex = pygments.highlight( '\n'.join( src ), python_lexer, latex_formatter )
 
                 if c is not None:
                     code_html = '<a href="{}" class="debugger_data_url">debugger_data_url</a>{}'.format( escape_url( json_filename ), code_html )
@@ -410,7 +403,6 @@ def convert_ast( doc, doc_name ):
 
                 # highlighting of src
                 code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
-                code_latex = pygments.highlight( '\n'.join( src ), python_lexer, latex_formatter )
 
             classes = [ 'pythoncode' ]
             if code_in_ic:
@@ -424,15 +416,14 @@ def convert_ast( doc, doc_name ):
 
             if 'hidden' not in data[ 0 ][ 1 ] and 'hidden' not in src0:
 
-                append_raw_block( new_body, html = code_html, latex = code_latex )
+                append_raw_block( new_body, html = code_html )
 
             for figure in ic.pending_figures:
                 slide_counter = new_slide( slide_counter )
                 next_new_slide = True
                 code_html = '<div class="output image"><img src="{}.svg"/></div>'.format( figure )
                 #code_html = '<div class="output image"><object data="{}.svg" type="image/svg+xml"></object></div>'.format( figure )
-                code_latex = '\\includegraphics[width=.75\\textwidth]{{{}}}'.format( figure )
-                append_raw_block( new_body, html = code_html, latex = code_latex )
+                append_raw_block( new_body, html = code_html )
 
         elif pandoc_version < ( 1, 12 ) and item == 'HorizontalRule' or pandoc_version >= ( 1, 12 ) and item[ 't' ] == 'HorizontalRule':
 
@@ -465,8 +456,6 @@ if __name__ == '__main__':
     doc = json.dumps( convert_ast( doc, name ) )
     pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'html', '--standalone', '--email-obfuscation=none', '--mathjax=http://cdn.mathjax.org/mathjax/2.2-beta/MathJax.js?config=TeX-AMS-MML_HTMLorMML', '--css=pygments.css', '--css=slideshow.css', '--include-in-header', p( 'html_include' ), '--output', name + '.xhtml' ], stdin = subprocess.PIPE )
     pandoc.communicate( doc )
-#   pandoc = subprocess.Popen( [ 'pandoc', '-f', 'json', '-t', 'latex', '--standalone', '--include-in-header', p( 'tex_include' ), '--include-in-header', p( 'pygments.tex' ), '--output', name + '.tex' ], stdin = subprocess.PIPE )
-#   pandoc.communicate( doc )
 
     for f in ( 'slideshow.css', 'slideshow.js', 'pygments.css' ):
         if not os.path.exists( f ):
