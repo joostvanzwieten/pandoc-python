@@ -46,10 +46,9 @@ Controller.prototype =
 {
   key_handler : function( e )
   {
-    if ( e.keyCode == 27 ) // escape, exit slideshow, overview
+    if ( e.keyCode == 27 ) // escape, exit slideshow
     {
       document.body.classList.remove( 'slideshow' );
-      document.body.classList.remove( 'overview' );
       window.location.hash = '';
     }
     else if ( e.keyCode == 83 ) // s, start slideshow
@@ -69,7 +68,6 @@ Controller.prototype =
         }
         this.current.classList.add( 'current' );
         // start slideshow
-        document.body.classList.remove( 'overview' );
         document.body.classList.add( 'slideshow' );
         window.location.hash = '#slideshow-' + this.current.id;
         if ( window.scroll != undefined )

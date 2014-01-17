@@ -5,7 +5,7 @@ body
   position : absolute;
 }
 
-body, body.overview div.slide > div.container
+body
 {
   padding : 1ex;
 }
@@ -32,7 +32,7 @@ h1, h2, h3, h4, h5, h6
   border-bottom : 1px solid #ccc;
 }
 
-body.slideshow, body.overview
+body.slideshow
 {
   max-width : inherit;
   font-size : 24pt;
@@ -47,34 +47,6 @@ body.slideshow div.slide
 body.slideshow div.slide.current
 {
   display : block;
-}
-
-body.overview
-{
-  position : absolute;
-  top : 0px;
-  bottom : 0px;
-  left : 0px;
-  right : 0px;
-  padding : 0px;
-  margin : 0px;
-}
-
-body.overview div.slide
-{
-  font-size : 50%;
-  padding : 0px;
-  margin : 0px;
-  width : 50%;
-  height : 50%;
-  display : inline-block;
-  overflow : auto;
-}
-
-body.overview div.slide > div.container
-{
-  margin : 1ex;
-  padding : 1ex;
 }
 
 h1
