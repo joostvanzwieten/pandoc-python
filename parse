@@ -311,7 +311,7 @@ def convert_ast( doc, doc_name, at_build_dir ):
     html_console_formatter = HtmlFormatterIC( linenos = False, cssclass = "pythoncode" )
 
 
-    ic = IC( prefix = doc_name )
+    ic = IC( prefix = at_build_dir( doc_name ) )
 
     new_body = []
 
@@ -438,19 +438,11 @@ def convert_ast( doc, doc_name, at_build_dir ):
     return doc[ 0 ], new_body
 
 
-if __name__ == '__main__':
+def process_document( src, share_dir, build_dir, hashed_dependencies ):
 
-    # default settings
-
-    root = os.path.split( __file__ )[ 0 ]
-    build_dir = '.'
-
-    at_share_dir = lambda f: os.path.join( root, f )
+    at_share_dir = lambda f: os.path.join( share_dir, f )
     at_build_dir = lambda f: os.path.join( build_dir, f )
 
-    # process command line arguments
-
-    src = sys.argv[ 1 ]
     doc_name, ext = os.path.splitext( src )
     if not os.path.isfile( src ):
         print( 'No such file: {}'.format( src ) )
@@ -466,19 +458,11 @@ if __name__ == '__main__':
 
     doc = json.dumps( convert_ast( doc, doc_name, at_build_dir ) )
 
-    # copy css and javascript files to the build directory
+    # generate html header supplement
 
-    hashed_names = {}
-    for name in ( 'slideshow.css', 'slideshow.js', 'pygments.css' ):
-        with open( at_share_dir( name ) ) as f:
-            hashed_name = '{}-{}'.format( hashlib.sha1( f.read() ).hexdigest(), name )
-        hashed_names[ name ] = hashed_name
-        if not os.path.exists( at_build_dir( hashed_name ) ):
-            shutil.copy( at_share_dir( name ), at_build_dir( hashed_name ) )
-        if name == 'slideshow.js':
-            include_slideshow_js = at_build_dir( 'include-{}'.format( hashed_name ) )
-            with open( include_slideshow_js, 'w' ) as f:
-                print( '<script type="text/javascript" src="{}"></script>'.format( hashed_name ), file = f )
+    html_include = at_build_dir( '{}.html_include'.format( doc_name ) )
+    with open( html_include, 'w' ) as f:
+        print( '<script type="text/javascript" src="{}"></script>'.format( hashed_dependencies[ 'slideshow.js' ] ), file = f )
 
     # generate html using pandoc
 
@@ -489,9 +473,65 @@ if __name__ == '__main__':
         '--standalone',
         '--email-obfuscation=none',
         '--mathjax=http://cdn.mathjax.org/mathjax/2.2-beta/MathJax.js?config=TeX-AMS-MML_HTMLorMML',
-        '--css={}'.format( hashed_names[ 'pygments.css' ] ),
-        '--css={}'.format( hashed_names[ 'slideshow.css' ] ),
-        '--include-in-header={}'.format( include_slideshow_js ),
+        '--css={}'.format( hashed_dependencies[ 'pygments.css' ] ),
+        '--css={}'.format( hashed_dependencies[ 'slideshow.css' ] ),
+        '--include-in-header={}'.format( html_include ),
         '--output={}'.format( at_build_dir( doc_name + '.xhtml' ) ),
     ], stdin = subprocess.PIPE )
     pandoc.communicate( doc )
+
+
+if __name__ == '__main__':
+
+    # default settings
+
+    root = os.path.split( __file__ )[ 0 ]
+    build_dir = '.'
+
+    at_share_dir = lambda f: os.path.join( root, f )
+    at_build_dir = lambda f: os.path.join( build_dir, f )
+
+    # process command line arguments
+
+    sources = []
+    args = iter( sys.argv[1:] )
+    for arg in args:
+        if arg.startswith( '--' ):
+            arg = arg[2:]
+            value = None
+            if '=' in arg:
+                arg, value = arg.split( '=', 1 )
+            if arg == 'build':
+                if value is None:
+                    try:
+                        value = next( args )
+                    except StopIteration:
+                        print( 'ERROR: `--build` requires a value' )
+                        raise SystemExit( 1 )
+                build_dir = value
+                if not os.path.isdir( build_dir ):
+                    print( 'ERROR: build directory does not exist or is not a directory' )
+                    raise SystemExit( 1 )
+            else:
+                print( 'ERROR: unknown argument: --{}'.format( arg ) )
+                raise SystemExit( 1 )
+        else:
+            if not os.path.isfile( arg ):
+                print( 'ERROR: specified source does not exists or is not a file: {}'.format( arg ) )
+                raise SystemExit( 1 )
+            sources.append( arg )
+
+    # copy css and javascript files to the build directory
+
+    hashed_dependencies = {}
+    for name in ( 'slideshow.css', 'slideshow.js', 'pygments.css' ):
+        with open( at_share_dir( name ) ) as f:
+            hashed_name = '{}-{}'.format( hashlib.sha1( f.read() ).hexdigest(), name )
+        hashed_dependencies[ name ] = hashed_name
+        if not os.path.exists( at_build_dir( hashed_name ) ):
+            shutil.copy( at_share_dir( name ), at_build_dir( hashed_name ) )
+
+    # process documents
+
+    for source in sources:
+        process_document( source, root, build_dir, hashed_dependencies )
