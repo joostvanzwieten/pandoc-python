@@ -472,7 +472,7 @@ def process_document( src, share_dir, build_dir, hashed_dependencies ):
         '--to=html',
         '--standalone',
         '--email-obfuscation=none',
-        '--mathjax=http://cdn.mathjax.org/mathjax/2.2-beta/MathJax.js?config=TeX-AMS-MML_HTMLorMML',
+        '--mathjax',
         '--css={}'.format( hashed_dependencies[ 'pygments.css' ] ),
         '--css={}'.format( hashed_dependencies[ 'slideshow.css' ] ),
         '--include-in-header={}'.format( html_include ),
