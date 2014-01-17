@@ -356,9 +356,10 @@ def convert_ast( doc, doc_name ):
                 data = item[ 'c' ]
             src = ( data[ 1 ] + '\n' ).splitlines()
 
-            code_in_ic = 'interactive_console' in src[ 0 ] or 'ic' in src[ 0 ]
-            code_in_debugger = 'debugger' in src[ 0 ]
-            default_output_hidden = 'default_output_hidden' in src[ 0 ]
+            src0 = src[0]
+            code_in_ic = 'interactive_console' in src0 or 'ic' in src0
+            code_in_debugger = 'debugger' in src0
+            default_output_hidden = 'default_output_hidden' in src0
 
             src = src[ 1: ]
 
@@ -421,7 +422,7 @@ def convert_ast( doc, doc_name ):
             classes = ' '.join( classes )
             code_html = '<div class="{}"><div class="container">\n{}\n</div></div>'.format( classes, code_html )
 
-            if 'hidden' not in data[ 0 ][ 1 ]:
+            if 'hidden' not in data[ 0 ][ 1 ] and 'hidden' not in src0:
 
                 append_raw_block( new_body, html = code_html, latex = code_latex )
 
