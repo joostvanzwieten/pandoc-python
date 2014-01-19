@@ -323,6 +323,7 @@ def convert_ast( doc, doc_name, at_build_dir, html_header ):
         append_raw_block( new_body, html = html_code )
         return slide_counter + 1
 
+    append_raw_block( new_body, html = '<div id="slides">' )
     slide_counter = new_slide( 0 )
 
     next_new_slide = False
@@ -380,6 +381,9 @@ def convert_ast( doc, doc_name, at_build_dir, html_header ):
 
             elif code_in_debugger:
 
+                # highlighting of src
+                code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
+
                 try:
                     c = compile( '\n'.join( src ), mode = 'exec', filename = '<script>', dont_inherit = True )
                 except:
@@ -389,13 +393,10 @@ def convert_ast( doc, doc_name, at_build_dir, html_header ):
                     db = Debugger( c )
                     db.run()
 
-                    json_data = json.dumps( db.items )
+                    json_data = json.dumps( { 'source' : src, 'source_html' : code_html, 'type' : 'trace', 'trace' : db.items } )
                     json_hash = hashlib.sha1( json_data ).hexdigest()
                     html_header.append( '<script type="text/javascript">window.python_trace_{} = {};</script>'.format( json_hash, escape_html( json_data ) ) )
                     attributes[ 'python_trace' ] = 'python_trace_{}'.format( json_hash )
-
-                # highlighting of src
-                code_html = pygments.highlight( '\n'.join( src ), python_lexer, html_formatter )
 
             else:
 
@@ -432,7 +433,7 @@ def convert_ast( doc, doc_name, at_build_dir, html_header ):
 
             new_body.append( item )
 
-    append_raw_block( new_body, html = '</div></div>' )
+    append_raw_block( new_body, html = '</div></div></div>' )
 
     return doc[ 0 ], new_body
 

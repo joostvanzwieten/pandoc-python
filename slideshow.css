@@ -2,27 +2,32 @@ body
 {
 /*font-size : 12pt;*/
   font-family : serif;
-  position : absolute;
 }
 
-body
+div#slides
 {
   padding : 1ex;
+  position : fixed;
+  top : 0px;
+  left : 0px;
+  bottom : 0px;
+  right : 0px;
+  overflow : auto;
 }
 
-body
+div.slide
 {
   font-family : monospace;
   max-width : 90ex;
 }
 
-body > div
+div.slide > div
 {
   font-family : sans-serif;
   text-align : justify;
 }
 
-body.slideshow > div
+body.slideshow div.slide > div
 {
   text-align : inherit;
 }
@@ -32,15 +37,10 @@ h1, h2, h3, h4, h5, h6
   border-bottom : 1px solid #ccc;
 }
 
-body.slideshow
+body.slideshow div.slide
 {
   max-width : inherit;
   font-size : 24pt;
-  position : inherit;
-}
-
-body.slideshow div.slide
-{
   display : none;
 }
 
@@ -185,24 +185,14 @@ div.pythoncode.output_hidden div.output
   display : none;
 }
 
-div.pythoncode div.header_button.enable_debugger
+div.pythoncode div.header_button.enable_trace
 {
   display : block;
 }
 
-div.pythoncode div.header_button.disable_debugger
+div.pythoncode div.header_button.disable_trace
 {
   display : none;
-}
-
-div.pythoncode.debugger_enabled div.header_button.enable_debugger, div.pythoncode div.header_button.debugger_previous, div.pythoncode div.header_button.debugger_next, div.pythoncode div.header_button.debugger_first, div.pythoncode div.header_button.debugger_last
-{
-  display : none;
-}
-
-div.pythoncode.debugger_enabled div.header_button.disable_debugger, div.pythoncode.debugger_enabled div.header_button.debugger_previous, div.pythoncode.debugger_enabled div.header_button.debugger_next, div.pythoncode.debugger_enabled div.header_button.debugger_first, div.pythoncode.debugger_enabled div.header_button.debugger_last
-{
-  display : block;
 }
 
 a.debugger_data_url
@@ -210,34 +200,49 @@ a.debugger_data_url
   display : none;
 }
 
-div.pythoncode div.event, div.pythoncode div.console, div.pythoncode div.stack
-{
-  display : none;
-}
-
-div.pythoncode.debugger_enabled div.event, div.pythoncode.debugger_enabled div.console, div.pythoncode.debugger_enabled div.stack
+div.trace_viewer div.event, div.trace_viewer div.console, div.trace_viewer div.stack
 {
   display : block;
   border-top : 1px solid #ccc;
 }
 
-div.pythoncode div.event div.container, div.pythoncode div.console div.container, div.pythoncode div.stack div.container
+div.trace_viewer div.event div.container, div.trace_viewer div.console div.container, div.trace_viewer div.stack div.container
 {
   white-space : pre;
   font-family : monospace;
   margin : 1ex;
 }
 
-div.pythoncode div.event p, div.pythoncode div.console p, div.pythoncode div.stack p
+div.trace_viewer div.event p, div.trace_viewer div.console p, div.trace_viewer div.stack p
 {
   margin : 1ex;
   font-weight : bold;
 }
 
-div.pythoncode div.debug_cursor
+div.trace_viewer div.pythoncode div.trace_cursor
 {
   background : #66ff66;
 }
+
+div.trace_viewer
+{
+  display : none;
+}
+
+body.show_trace_viewer div.trace_viewer
+{
+  display : block;
+  background : white;
+  position : fixed;
+  top : 0px;
+  bottom : 0px;
+  left : 0px;
+  right : 0px;
+  margin : 0px;
+  padding : 0px;
+  overflow : auto;
+}
+
 
 /* vim: ts=2:sts=2:sw=2:et:fdm=marker:fmr={{{,}}}
  */

@@ -27,6 +27,11 @@ Element.prototype.empty = function()
 function Controller() // {{{
 {
   this.current = null;
+  this.current_trace_viewer = null;
+
+  this.trace_viewer_container = document.createElement( 'div' );
+  this.trace_viewer_container.classList.add( 'trace_viewer' );
+  document.body.appendChild( this.trace_viewer_container );
 
   var h = window.location.hash;
   if ( h.slice( 0, 11 ) == '#slideshow-' )
@@ -46,25 +51,34 @@ Controller.prototype =
 {
   key_handler : function( e )
   {
-    if ( e.keyCode == 27 ) // escape, exit slideshow
+    while (1)
     {
-      document.body.classList.remove( 'slideshow' );
-      window.location.hash = '';
-    }
-    else if ( e.keyCode == 83 ) // s, start slideshow
-    {
-      if ( document.body.classList.contains( 'slideshow' ) )
-        ; // already started
-      else
+      if ( this.current_trace_viewer != null )
       {
+        if ( this.current_trace_viewer.key_handler( e, this ) == 1 )
+          break;
+      }
+      else if ( document.body.classList.contains( 'slideshow' ) )
+      {
+        if ( this.slideshow_key_handler( e ) == 1 )
+          break;
+      }
+
+      if ( e.keyCode == 27 ) // escape
+        break;
+      else if ( e.keyCode == 83 ) // s, start slideshow
+      {
+        if ( document.body.classList.contains( 'slideshow' ) )
+          // already started
+          break;
         if ( this.current == null )
-          this.current = document.body.firstChild;
+          this.current = document.getElementById( 'slides' ).firstChild;
         while ( this.current != null && ( this.current.nodeType != Node.ELEMENT_NODE || !this.current.classList.contains( 'slide' ) ) )
           this.current = this.current.nextSibling;
         if ( this.current == null )
         {
           alert( 'no slides found!' );
-          return
+          break;
         }
         this.current.classList.add( 'current' );
         // start slideshow
@@ -72,9 +86,38 @@ Controller.prototype =
         window.location.hash = '#slideshow-' + this.current.id;
         if ( window.scroll != undefined )
           window.scroll( 0, 0 );
+        break;
       }
+      else if ( e.keyCode == 72 ) // h, toggle highlight
+      {
+        if ( e.shiftKey == 1 )
+          document.body.classList.remove( 'highlight' );
+        else
+          document.body.classList.add( 'highlight' );
+        break;
+      }
+
+      // key not handled
+      return;
     }
-    else if ( e.keyCode == 32 || e.keyCode == 78 ) // space or n, next slide
+
+    // key handled, prevent default response to this event
+    // TODO: find out what the proper method is
+    // http://www.w3.org/TR/DOM-Level-2-Events/events.html
+    // http://www.w3.org/wiki/Handling_events_with_JavaScript
+    e.stopPropagation();
+    e.preventDefault();
+  },
+
+  slideshow_key_handler : function( e )
+  {
+    if ( e.keyCode == 27 ) // escape
+    {
+      document.body.classList.remove( 'slideshow' );
+      window.location.hash = '';
+      return 1;
+    }
+    else if ( e.keyCode == 32 || e.keyCode == 78 ) // space or n
     {
       if ( this.current != null )
       {
@@ -91,8 +134,9 @@ Controller.prototype =
             window.scroll( 0, 0 );
         }
       }
+      return 1;
     }
-    else if ( e.keyCode == 80 ) // p, previous slide
+    else if ( e.keyCode == 80 ) // p
     {
       if ( this.current != null )
       {
@@ -109,41 +153,8 @@ Controller.prototype =
             window.scroll( 0, 0 );
         }
       }
+      return 1;
     }
-    else if ( e.keyCode == 72 ) // h, toggle highlight
-    {
-      if ( e.shiftKey == 1 )
-        document.body.classList.remove( 'highlight' );
-      else
-        document.body.classList.add( 'highlight' );
-    }
-    else if ( e.keyCode == 188 ) // ,, debug step back
-    {
-      if ( this.debug == undefined )
-        return;
-      if ( e.shiftKey )
-        this.debug.debugger_first();
-      else
-        this.debug.debugger_previous();
-    }
-    else if ( e.keyCode == 190 ) // ., debug step forward
-    {
-      if ( this.debug == undefined )
-        return;
-      if ( e.shiftKey )
-        this.debug.debugger_last();
-      else
-        this.debug.debugger_next();
-    }
-    else
-      return;
-
-    // prevent default response to this event
-    // TODO: find out what the proper method is
-    // http://www.w3.org/TR/DOM-Level-2-Events/events.html
-    // http://www.w3.org/wiki/Handling_events_with_JavaScript
-    e.stopPropagation();
-    e.preventDefault();
   },
 
   hash_change_event : function( e )
@@ -167,10 +178,190 @@ Controller.prototype =
       else
         document.body.classList.add( 'slideshow' );
     }
+    else if ( h.slice( 0, 14 ) == '#python_trace_' )
+    {
+      var trace_data = window[ h.slice(1) ];
+      if ( trace_data != null )
+      {
+        if ( this.current_trace_viewer != null )
+          this.trace_viewer_container.empty();
+        this.current_trace_viewer = new TraceViewer( trace_data );
+        this.trace_viewer_container.appendChild( this.current_trace_viewer.root_element );
+        document.body.classList.add( 'show_trace_viewer' );
+      }
+      else
+        alert( 'specified python trace not found' );
+    }
     else
+    {
+      if ( this.current_trace_viewer != null )
+        this.remove_trace_viewer( 0 );
       document.body.classList.remove( 'slideshow' );
+    }
+  },
+
+  remove_trace_viewer : function( update_hash )
+  {
+    document.body.classList.remove( 'show_trace_viewer' );
+    this.current_trace_viewer = null;
+    this.trace_viewer_container.empty();
+    if ( update_hash )
+    {
+      // TODO: restore previous hash
+      window.location.hash = '#';
+    }
   },
 }; // }}}
+
+function TraceViewer( data ) // {{{
+{
+  this.root_element = document.createElement( 'div' );
+
+  this.source_container = document.createElement( 'div' );
+  this.source_container.classList.add( 'source' );
+  this.source_container.classList.add( 'container' );
+  this.source_container.innerHTML = data[ 'source_html' ];
+  var div_source = document.createElement( 'div' );
+  div_source.classList.add( 'pythoncode' )
+
+  this.create_header_button( 'first', this.first, div_source );
+  this.create_header_button( 'previous', this.previous, div_source );
+  this.create_header_button( 'next', this.next, div_source );
+  this.create_header_button( 'last', this.last, div_source );
+
+  div_source.appendChild( this.source_container );
+  this.root_element.appendChild( div_source );
+
+  this.event_container = document.createElement( 'div' );
+  this.event_container.classList.add( 'container' );
+  var div_event = document.createElement( 'div' );
+  div_event.classList.add( 'event' );
+  var event_name = document.createElement( 'p' );
+  event_name.appendChild( document.createTextNode( 'event' ) );
+  div_event.appendChild( event_name );
+  div_event.appendChild( this.event_container );
+  this.root_element.appendChild( div_event );
+
+  this.console_container = document.createElement( 'div' );
+  this.console_container.classList.add( 'container' );
+  var div_console = document.createElement( 'div' );
+  div_console.classList.add( 'console' );
+  var console_name = document.createElement( 'p' );
+  console_name.appendChild( document.createTextNode( 'console' ) );
+  div_console.appendChild( console_name );
+  div_console.appendChild( this.console_container );
+  this.root_element.appendChild( div_console );
+
+  this.stack_container = document.createElement( 'div' );
+  this.stack_container.classList.add( 'container' );
+  var div_stack = document.createElement( 'div' );
+  div_stack.classList.add( 'stack' );
+  var stack_name = document.createElement( 'p' );
+  stack_name.appendChild( document.createTextNode( 'stack' ) );
+  div_stack.appendChild( stack_name );
+  div_stack.appendChild( this.stack_container );
+  this.root_element.appendChild( div_stack );
+
+  this.trace_data = data[ 'trace' ];
+  this.current = 0;
+  this.current_line = null;
+  this.update_state();
+}
+
+TraceViewer.prototype =
+{
+  create_header_button : function( text, event_handler, el )
+  {
+    var button = document.createElement( 'div' );
+    button.classList.add( 'header_button' );
+    button.appendChild( document.createTextNode( text ) );
+    button.addEventListener( 'click', event_handler.bind( this ) );
+    // prevent text selection on double click
+    button.addEventListener( 'mousedown', function( e ) { e.preventDefault(); } );
+//  if ( this.root_element.childNodes.length > 0 )
+//    this.root_element.insertBefore( button, this.root_element.childNodes[0] );
+//  else
+    el.appendChild( button );
+  },
+
+  previous : function()
+  {
+    this.current -= 1;
+    this.update_state();
+  },
+
+  next : function()
+  {
+    this.current += 1;
+    this.update_state();
+  },
+
+  first : function()
+  {
+    this.current = 0;
+    this.update_state();
+  },
+
+  last : function()
+  {
+    this.current = this.trace_data.length - 1;
+    this.update_state();
+  },
+
+  update_state : function()
+  {
+    if ( this.current >= this.trace_data.length )
+      this.current = this.trace_data.length - 1;
+    if ( this.current < 0 )
+      this.current = 0;
+
+    var item = this.trace_data[ this.current ];
+
+    if ( this.current_line != null )
+      this.current_line.classList.remove( 'trace_cursor' );
+    if ( item[ 0 ] == null )
+      this.current_line = null;
+    else
+    {
+      this.current_line = this.root_element.getElementsByClassName( 'lineno' + item[ 0 ] )[ 0 ];
+      this.current_line.classList.add( 'trace_cursor' );
+    }
+
+    this.event_container.empty();
+    this.event_container.appendChild( document.createTextNode( item[ 1 ] ) );
+    this.console_container.empty();
+    this.console_container.appendChild( document.createTextNode( item[ 2 ] ) );
+    this.stack_container.empty();
+    this.stack_container.appendChild( document.createTextNode( item[ 3 ] ) );
+  },
+
+  key_handler : function ( e, controller )
+  {
+    if ( e.keyCode == 27 ) // escape
+    {
+      controller.remove_trace_viewer( 1 );
+      return 1;
+    }
+    else if ( e.keyCode == 188 ) // ,
+    {
+      if ( e.shiftKey )
+        this.first();
+      else
+        this.previous();
+      return 1;
+    }
+    else if ( e.keyCode == 190 ) // .
+    {
+      if ( e.shiftKey )
+        this.last();
+      else
+        this.next();
+      return 1;
+    }
+  },
+};
+
+// }}}
 
 function PythonCode( root_element, controller ) // {{{
 {
@@ -185,9 +376,11 @@ function PythonCode( root_element, controller ) // {{{
 
   if ( this.root_element.classList.contains( 'debugger' ) )
   {
-    // FIXME: properly check existence python_trace attribute
-    var var_name = this.root_element.getAttribute( 'python_trace' );
-    this.debugger_data_load( window[ var_name ] );
+    this.trace_var_name = this.root_element.getAttribute( 'python_trace' );
+    this.create_header_button( 'trace', [ 'enable_debugger' ], function()
+    {
+      window.location.hash = '#' + this.trace_var_name;
+    } ); // TODO: use a regular anchor
   }
 }
 
@@ -217,124 +410,6 @@ PythonCode.prototype =
   hide_output : function()
   {
     this.root_element.classList.add( 'output_hidden' );
-  },
-
-  enable_debugger : function()
-  {
-    this.root_element.classList.add( 'debugger_enabled' );
-
-    this.current = 0;
-    this.current_line = null;
-    this.debugger_update_state();
-
-    this.controller.debug = this;
-  },
-
-  disable_debugger : function()
-  {
-    this.root_element.classList.remove( 'debugger_enabled' );
-    if ( this.current_line != null )
-    {
-      this.current_line.classList.remove( 'debug_cursor' );
-      this.current_line = null;
-    }
-    if ( this.controller.debug === this )
-    {
-      this.controller.debug = undefined;
-    }
-  },
-
-  debugger_data_load : function( data )
-  {
-    this.debug_data = data;
-
-    this.create_header_button( 'first', [ 'debugger_first' ], this.debugger_first );
-    this.create_header_button( 'previous', [ 'debugger_previous' ], this.debugger_previous );
-    this.create_header_button( 'next', [ 'debugger_next' ], this.debugger_next );
-    this.create_header_button( 'last', [ 'debugger_last' ], this.debugger_last );
-    this.create_header_button( 'enable debugger', [ 'enable_debugger' ], this.enable_debugger );
-    this.create_header_button( 'disable debugger', [ 'disable_debugger' ], this.disable_debugger );
-
-    this.event_container = document.createElement( 'div' );
-    this.event_container.classList.add( 'container' );
-    var div_event = document.createElement( 'div' );
-    div_event.classList.add( 'event' );
-    var event_name = document.createElement( 'p' );
-    event_name.appendChild( document.createTextNode( 'event' ) );
-    div_event.appendChild( event_name );
-    div_event.appendChild( this.event_container );
-    this.root_element.appendChild( div_event );
-
-    this.console_container = document.createElement( 'div' );
-    this.console_container.classList.add( 'container' );
-    var div_console = document.createElement( 'div' );
-    div_console.classList.add( 'console' );
-    var console_name = document.createElement( 'p' );
-    console_name.appendChild( document.createTextNode( 'console' ) );
-    div_console.appendChild( console_name );
-    div_console.appendChild( this.console_container );
-    this.root_element.appendChild( div_console );
-
-    this.stack_container = document.createElement( 'div' );
-    this.stack_container.classList.add( 'container' );
-    var div_stack = document.createElement( 'div' );
-    div_stack.classList.add( 'stack' );
-    var stack_name = document.createElement( 'p' );
-    stack_name.appendChild( document.createTextNode( 'stack' ) );
-    div_stack.appendChild( stack_name );
-    div_stack.appendChild( this.stack_container );
-    this.root_element.appendChild( div_stack );
-  },
-
-  debugger_previous : function()
-  {
-    this.current -= 1;
-    this.debugger_update_state();
-  },
-
-  debugger_next : function()
-  {
-    this.current += 1;
-    this.debugger_update_state();
-  },
-
-  debugger_first : function()
-  {
-    this.current = 0;
-    this.debugger_update_state();
-  },
-
-  debugger_last : function()
-  {
-    this.current = this.debug_data.length - 1;
-    this.debugger_update_state();
-  },
-
-  debugger_update_state : function()
-  {
-    if ( this.current >= this.debug_data.length )
-      this.current = this.debug_data.length - 1;
-    if ( this.current < 0 )
-      this.current = 0;
-
-    var item = this.debug_data[ this.current ];
-
-    if ( this.current_line != null )
-      this.current_line.classList.remove( 'debug_cursor' );
-    if ( item[ 0 ] == null )
-      this.current_line = null;
-    else
-    {
-      this.current_line = this.root_element.getElementsByClassName( 'lineno' + item[ 0 ] )[ 0 ];
-      this.current_line.classList.add( 'debug_cursor' );
-    }
-
-    this.event_container.empty();
-    this.event_container.appendChild( document.createTextNode( item[ 1 ] ) );
-    this.console_container.empty();
-    this.console_container.appendChild( document.createTextNode( item[ 2 ] ) );
-    this.stack_container.empty();
-    this.stack_container.appendChild( document.createTextNode( item[ 3 ] ) );
   },
 }; // }}}
 
